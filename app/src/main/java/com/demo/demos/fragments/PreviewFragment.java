@@ -136,7 +136,7 @@ public class PreviewFragment extends Fragment {
         btnVideoMode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //录像模式，选择宽高比和预览窗口宽高比最接近且的输出尺寸
+                //录像模式，选择宽高比和预览窗口宽高比一致或最接近且的输出尺寸
                 //如果该输出尺寸过小，则选择和预览窗口面积最接近的输出尺寸
                 updateCameraPreviewWithVideoMode();
             }
@@ -276,7 +276,6 @@ public class PreviewFragment extends Fragment {
 
     private void updateCameraPreviewWithImageMode(){
         previewSize = outputSizes.get(0);
-        Log.d(TAG, "img_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
         createPreviewSession();
     }
 
@@ -291,7 +290,6 @@ public class PreviewFragment extends Fragment {
         }
         if (sizes.size() > 0){
             previewSize = Collections.max(sizes, new CompareSizesByArea());
-            Log.d(TAG, "video_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
             createPreviewSession();
             return;
         }
@@ -306,7 +304,6 @@ public class PreviewFragment extends Fragment {
                 previewSize = size;
             }
         }
-        Log.d(TAG, "video_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
         if (previewSize.getWidth() * previewSize.getHeight() > PREVIEW_SIZE_MIN){
             createPreviewSession();
         }
@@ -321,7 +318,6 @@ public class PreviewFragment extends Fragment {
                 previewSize = size;
             }
         }
-        Log.d(TAG, "video_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
         createPreviewSession();
     }
 
