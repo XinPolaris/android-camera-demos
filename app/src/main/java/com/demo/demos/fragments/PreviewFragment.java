@@ -55,8 +55,11 @@ public class PreviewFragment extends Fragment {
     private static final String TAG = "PreviewFragment";
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
+    private static final long PREVIEW_SIZE_MIN = 720 * 480;
 
     Button btnChangePreviewSize;
+    Button btnImageMode;
+    Button btnVideoMode;
 //    TextureView previewView;//相机预览view
     AutoFitTextureView previewView;//自适应相机预览view
 
@@ -94,8 +97,15 @@ public class PreviewFragment extends Fragment {
     private void initCamera(){
         cameraManager = CameraUtils.getInstance().getCameraManager();
         cameraId = CameraUtils.getInstance().getCameraId(false);//默认使用后置相机
-        //获取指定相机的输出尺寸列表
+        //获取指定相机的输出尺寸列表，并降序排序
         outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
+        Collections.sort(outputSizes, new Comparator<Size>() {
+            @Override
+            public int compare(Size o1, Size o2) {
+                return o1.getWidth() * o1.getHeight() - o2.getWidth() * o2.getHeight();
+            }
+        });
+        Collections.reverse(outputSizes);
         //初始化预览尺寸
         previewSize = outputSizes.get(0);
     }
@@ -112,6 +122,25 @@ public class PreviewFragment extends Fragment {
             }
         });
         setButtonText();
+
+        btnImageMode = view.findViewById(R.id.btn_image_mode);
+        btnImageMode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //拍照模式，选择最大输出尺寸
+                updateCameraPreviewWithImageMode();
+            }
+        });
+
+        btnVideoMode = view.findViewById(R.id.btn_video_mode);
+        btnVideoMode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //录像模式，选择宽高比和预览窗口宽高比最接近且的输出尺寸
+                //如果该输出尺寸过小，则选择和预览窗口面积最接近的输出尺寸
+                updateCameraPreviewWithVideoMode();
+            }
+        });
 
         previewView = view.findViewById(R.id.afttv_camera);
         previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
@@ -245,9 +274,70 @@ public class PreviewFragment extends Fragment {
         createPreviewSession();
     }
 
+    private void updateCameraPreviewWithImageMode(){
+        previewSize = outputSizes.get(0);
+        Log.d(TAG, "img_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
+        createPreviewSession();
+    }
+
+    private void updateCameraPreviewWithVideoMode(){
+        List<Size> sizes = new ArrayList<>();
+        float ratio = ((float) previewView.getWidth() / previewView.getHeight());
+        //首先选取宽高比与预览窗口一致且最大的输出尺寸
+        for (int i = 0; i < outputSizes.size(); i++){
+            if (((float)outputSizes.get(i).getWidth()) / outputSizes.get(i).getHeight() == ratio){
+                sizes.add(outputSizes.get(i));
+            }
+        }
+        if (sizes.size() > 0){
+            previewSize = Collections.max(sizes, new CompareSizesByArea());
+            Log.d(TAG, "video_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
+            createPreviewSession();
+            return;
+        }
+        //如果不存在宽高比与预览窗口宽高比一致的输出尺寸，则选择与其宽高比最接近的输出尺寸
+        sizes.clear();
+        float detRatioMin = Float.MAX_VALUE;
+        for (int i = 0; i < outputSizes.size(); i++){
+            Size size = outputSizes.get(i);
+            float curRatio = ((float)size.getWidth()) / size.getHeight();
+            if (Math.abs(curRatio - ratio) < detRatioMin){
+                detRatioMin = curRatio;
+                previewSize = size;
+            }
+        }
+        Log.d(TAG, "video_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
+        if (previewSize.getWidth() * previewSize.getHeight() > PREVIEW_SIZE_MIN){
+            createPreviewSession();
+        }
+        //如果宽高比最接近的输出尺寸太小，则选择与预览窗口面积最接近的输出尺寸
+        long area = previewView.getWidth() * previewView.getHeight();
+        long detAreaMin = Long.MAX_VALUE;
+        for (int i = 0; i < outputSizes.size(); i++){
+            Size size = outputSizes.get(i);
+            long curArea = size.getWidth() * size.getHeight();
+            if (Math.abs(curArea - area) < detAreaMin){
+                detAreaMin = curArea;
+                previewSize = size;
+            }
+        }
+        Log.d(TAG, "video_mode: " + previewSize.getWidth() + "-" + previewSize.getHeight());
+        createPreviewSession();
+    }
+
     private void setButtonText(){
         btnChangePreviewSize.setText(previewSize.getWidth() + "-" + previewSize.getHeight());
     }
+
+    static class CompareSizesByArea implements Comparator<Size> {
+        @Override
+        public int compare(Size lhs, Size rhs) {
+            return Long.signum((long) lhs.getWidth() * lhs.getHeight() -
+                    (long) rhs.getWidth() * rhs.getHeight());
+        }
+
+    }
+
     /******************************** 权限/对话框 ************************************************/
 
     private void requestCameraPermission() {
