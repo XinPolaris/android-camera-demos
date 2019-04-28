@@ -5,6 +5,7 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.demo.demos.fragments.PreviewFragment;
+import com.demo.demos.utils.CameraUtils;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -12,6 +13,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        CameraUtils.init(this);
 
         if (null == savedInstanceState){
             getSupportFragmentManager()

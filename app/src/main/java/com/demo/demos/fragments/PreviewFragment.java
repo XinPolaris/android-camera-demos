@@ -34,9 +34,12 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.demo.demos.R;
+import com.demo.demos.utils.CameraUtils;
+import com.demo.demos.views.AutoFitTextureView;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,12 +56,20 @@ public class PreviewFragment extends Fragment {
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
 
-    TextureView previewView;//相机预览view
+    Button btnChangePreviewSize;
+//    TextureView previewView;//相机预览view
+    AutoFitTextureView previewView;//自适应相机预览view
 
     CameraManager cameraManager;//相机管理类
-    String cameraId;//相机id
-    Size previewSize;//预览尺寸
     CameraDevice cameraDevice;//相机设备类
+    CameraCaptureSession cameraCaptureSession;//相机会话类
+
+    String cameraId;//相机id
+
+    List<Size> outputSizes;//相机输出尺寸
+    int sizeIndex = 0;
+
+    Size previewSize;//预览尺寸
 
     public PreviewFragment() {
         // Required empty public constructor
@@ -74,9 +85,36 @@ public class PreviewFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        previewView = view.findViewById(R.id.ttv_camera);
-        //初始化 CameraManager
-        cameraManager = (CameraManager) getActivity().getSystemService(Context.CAMERA_SERVICE);
+        //初始化相机
+        initCamera();
+        //初始化界面
+        initViews(view);
+    }
+
+    private void initCamera(){
+        cameraManager = CameraUtils.getInstance().getCameraManager();
+        cameraId = CameraUtils.getInstance().getCameraId(false);//默认使用后置相机
+        //获取指定相机的输出尺寸列表
+        outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
+        //初始化预览尺寸
+        previewSize = outputSizes.get(0);
+    }
+
+    private void initViews(View view){
+        btnChangePreviewSize = view.findViewById(R.id.btn_change_preview_size);
+        btnChangePreviewSize.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //切换预览分辨率
+                updateCameraPreview();
+                previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+                setButtonText();
+            }
+        });
+        setButtonText();
+
+        previewView = view.findViewById(R.id.afttv_camera);
+        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
     }
 
     @Override
@@ -89,8 +127,8 @@ public class PreviewFragment extends Fragment {
             //TextureView 可用时调用改回调方法
             @Override
             public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-                //TextureView 可用，启动相机
-                setupCamera();
+                //TextureView 可用，打开相机
+                openCamera();
             }
 
             @Override
@@ -108,42 +146,6 @@ public class PreviewFragment extends Fragment {
 
             }
         });
-    }
-
-    private void setupCamera() {
-        //配置相机参数（cameraId，previewSize）
-        configCamera();
-        //打开相机
-        openCamera();
-    }
-
-    private void configCamera() {
-        try {
-            //遍历相机列表，使用前置相机
-            for (String cid : cameraManager.getCameraIdList()) {
-                //获取相机配置
-                CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cid);
-                //使用后置相机
-                int facing = characteristics.get(CameraCharacteristics.LENS_FACING);//获取相机朝向
-                if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                    continue;
-                }
-                //获取相机输出格式/尺寸参数
-                StreamConfigurationMap configs = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-                //打印相关参数（相机id，相机输出尺寸、设备屏幕尺寸、previewView尺寸）
-                printSizes(cid, configs);
-                //设定最佳预览尺寸
-                previewSize = setOptimalPreviewSize(configs.getOutputSizes(SurfaceTexture.class),
-                        previewView.getMeasuredWidth(),
-                        previewView.getMeasuredHeight());
-                //打印最佳预览尺寸
-                Log.d(TAG, "最佳预览尺寸（w-h）：" + previewSize.getWidth() + "-" + previewSize.getHeight());
-
-                cameraId = cid;
-            }
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
     }
 
     private void openCamera() {
@@ -167,40 +169,18 @@ public class PreviewFragment extends Fragment {
                         @Override
                         public void onDisconnected(CameraDevice camera) {
                             //释放相机资源
-                            releseCamera();
+                            CameraUtils.getInstance().releaseCamera(camera);
                         }
 
                         @Override
                         public void onError(CameraDevice camera, int error) {
                             //释放相机资源
-                            releseCamera();
+                            CameraUtils.getInstance().releaseCamera(camera);
                         }
                     },
                     null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
-        }
-    }
-
-    private Size setOptimalPreviewSize(Size[] sizes, int previewViewWidth, int previewViewHeight) {
-        List<Size> bigEnoughSizes = new ArrayList<>();
-        List<Size> notBigEnoughSizes = new ArrayList<>();
-
-        for (Size size : sizes) {
-            if (size.getWidth() >= previewViewWidth && size.getHeight() >= previewViewHeight) {
-                bigEnoughSizes.add(size);
-            } else {
-                notBigEnoughSizes.add(size);
-            }
-        }
-
-        if (bigEnoughSizes.size() > 0) {
-            return Collections.min(bigEnoughSizes, new CompareSizesByArea());
-        } else if (notBigEnoughSizes.size() > 0) {
-            return Collections.max(notBigEnoughSizes, new CompareSizesByArea());
-        } else {
-            Log.d(TAG, "未找到合适的预览尺寸");
-            return sizes[0];
         }
     }
 
@@ -216,6 +196,9 @@ public class PreviewFragment extends Fragment {
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(CameraCaptureSession session) {
+
+                            cameraCaptureSession = session;
+
                             try {
                                 //构建预览捕获请求
                                 CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
@@ -251,38 +234,20 @@ public class PreviewFragment extends Fragment {
 
     }
 
-    private void releseCamera() {
-        if (cameraDevice != null) {
-            cameraDevice.close();
-            cameraDevice = null;
+    private void updateCameraPreview(){
+        if (sizeIndex + 1 < outputSizes.size()){
+            sizeIndex++;
+        }else {
+            sizeIndex = 0;
         }
+        previewSize = outputSizes.get(sizeIndex);
+        //重新创建会话
+        createPreviewSession();
     }
 
-    private void printSizes(String cid, StreamConfigurationMap configs) {
-        Log.d(TAG, "cameraId:" + cid);
-
-        Size[] sizes = configs.getOutputSizes(SurfaceTexture.class);
-        for (int i = 0; i < sizes.length; i++) {
-            Size size = sizes[i];
-            Log.d(TAG, "相机输出尺寸(w-h):" + size.getWidth() + "-" + size.getHeight());
-        }
-
-        Point displaySize = new Point();
-        getActivity().getWindowManager().getDefaultDisplay().getSize(displaySize);
-        Log.d(TAG, "设备屏幕尺寸(x-y):" + displaySize.x + "-" + displaySize.y);
-
-        Log.d(TAG, "预览窗口尺寸(w-h):" + previewView.getMeasuredWidth() + "-" + previewView.getMeasuredHeight());
+    private void setButtonText(){
+        btnChangePreviewSize.setText(previewSize.getWidth() + "-" + previewSize.getHeight());
     }
-
-    static class CompareSizesByArea implements Comparator<Size> {
-
-        @Override
-        public int compare(Size lhs, Size rhs) {
-            return Long.signum((long) lhs.getWidth() * lhs.getHeight() - (long) rhs.getWidth() * rhs.getHeight());
-        }
-
-    }
-
     /******************************** 权限/对话框 ************************************************/
 
     private void requestCameraPermission() {

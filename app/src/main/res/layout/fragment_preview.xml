@@ -5,9 +5,21 @@
     android:layout_height="match_parent"
     tools:context=".fragments.PreviewFragment">
 
-    <TextureView
-        android:id="@+id/ttv_camera"
+    <!--<TextureView-->
+        <!--android:id="@+id/ttv_camera"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content" />-->
+
+    <com.demo.demos.views.AutoFitTextureView
+        android:id="@+id/afttv_camera"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <Button
+        android:id="@+id/btn_change_preview_size"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"/>
 
 </RelativeLayout>
