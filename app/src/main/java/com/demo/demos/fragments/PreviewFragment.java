@@ -117,7 +117,6 @@ public class PreviewFragment extends Fragment {
             public void onClick(View v) {
                 //切换预览分辨率
                 updateCameraPreview();
-                previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
                 setButtonText();
             }
         });
@@ -136,7 +135,7 @@ public class PreviewFragment extends Fragment {
         btnVideoMode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //录像模式，选择宽高比和预览窗口宽高比一致或最接近且的输出尺寸
+                //录像模式，选择宽高比和预览窗口高宽比一致或最接近且的输出尺寸
                 //如果该输出尺寸过小，则选择和预览窗口面积最接近的输出尺寸
                 updateCameraPreviewWithVideoMode();
             }
@@ -270,19 +269,22 @@ public class PreviewFragment extends Fragment {
             sizeIndex = 0;
         }
         previewSize = outputSizes.get(sizeIndex);
+        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
         //重新创建会话
         createPreviewSession();
     }
 
     private void updateCameraPreviewWithImageMode(){
         previewSize = outputSizes.get(0);
+        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
         createPreviewSession();
     }
 
     private void updateCameraPreviewWithVideoMode(){
         List<Size> sizes = new ArrayList<>();
-        float ratio = ((float) previewView.getWidth() / previewView.getHeight());
-        //首先选取宽高比与预览窗口一致且最大的输出尺寸
+        //计算预览窗口高宽比，高宽比，高宽比
+        float ratio = ((float) previewView.getHeight() / previewView.getWidth());
+        //首先选取宽高比与预览窗口高宽比一致且最大的输出尺寸
         for (int i = 0; i < outputSizes.size(); i++){
             if (((float)outputSizes.get(i).getWidth()) / outputSizes.get(i).getHeight() == ratio){
                 sizes.add(outputSizes.get(i));
@@ -290,10 +292,11 @@ public class PreviewFragment extends Fragment {
         }
         if (sizes.size() > 0){
             previewSize = Collections.max(sizes, new CompareSizesByArea());
+            previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
             createPreviewSession();
             return;
         }
-        //如果不存在宽高比与预览窗口宽高比一致的输出尺寸，则选择与其宽高比最接近的输出尺寸
+        //如果不存在宽高比与预览窗口高宽比一致的输出尺寸，则选择与其高宽比最接近的输出尺寸
         sizes.clear();
         float detRatioMin = Float.MAX_VALUE;
         for (int i = 0; i < outputSizes.size(); i++){
@@ -305,6 +308,7 @@ public class PreviewFragment extends Fragment {
             }
         }
         if (previewSize.getWidth() * previewSize.getHeight() > PREVIEW_SIZE_MIN){
+            previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
             createPreviewSession();
         }
         //如果宽高比最接近的输出尺寸太小，则选择与预览窗口面积最接近的输出尺寸
@@ -318,6 +322,7 @@ public class PreviewFragment extends Fragment {
                 previewSize = size;
             }
         }
+        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
         createPreviewSession();
     }
 

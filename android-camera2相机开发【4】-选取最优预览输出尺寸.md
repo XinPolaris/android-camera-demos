@@ -6,8 +6,9 @@
 
 ### 2. 视频模式下的最优输出预览尺寸选择
 
-* 录制视频的时候，为了预览和播放效果好（充满窗口），可以选择宽高比与预览窗口宽高比一致的输出尺寸。
-* 如果没有宽高比一致的输出尺寸，则可以选择宽高比接近的。
+* 相机输出尺寸默认是横向的（宽>高），手机窗口一般是竖向的（不考虑旋转横置的情况），所以比较时将输出尺寸的 __宽高比__ 与 预览窗口的 __高宽比__ 进行比较。 
+* 录制视频的时候，为了预览和播放效果好（充满窗口），可以选择宽高比与预览窗口高宽比一致的输出尺寸。
+* 如果没有宽高比一致的输出尺寸，则可以选择高宽比接近的。
 * 但是如果上面选择的尺寸过小，则预览图像画质比较模糊，所以可以设定一个阈值，如果不满足阈值，则退而求其次选择和预览窗口面积最接近的输出尺寸。
 
 ### 3. 代码实现
@@ -44,7 +45,7 @@
         btnVideoMode.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //录像模式，选择宽高比和预览窗口宽高比一致或最接近且的输出尺寸
+                //录像模式，选择宽高比和预览窗口高宽比一致或最接近且的输出尺寸
                 //如果该输出尺寸过小，则选择和预览窗口面积最接近的输出尺寸
                 updateCameraPreviewWithVideoMode();
             }
@@ -66,7 +67,7 @@
     private void updateCameraPreviewWithVideoMode(){
         List<Size> sizes = new ArrayList<>();
         float ratio = ((float) previewView.getWidth() / previewView.getHeight());
-        //首先选取宽高比与预览窗口一致且最大的输出尺寸
+        //首先选取宽高比与预览窗口高宽比一致且最大的输出尺寸
         for (int i = 0; i < outputSizes.size(); i++){
             if (((float)outputSizes.get(i).getWidth()) / outputSizes.get(i).getHeight() == ratio){
                 sizes.add(outputSizes.get(i));
@@ -77,7 +78,7 @@
             createPreviewSession();
             return;
         }
-        //如果不存在宽高比与预览窗口宽高比一致的输出尺寸，则选择与其宽高比最接近的输出尺寸
+        //如果不存在宽高比与预览窗口高宽比一致的输出尺寸，则选择与其宽高比最接近的输出尺寸
         sizes.clear();
         float detRatioMin = Float.MAX_VALUE;
         for (int i = 0; i < outputSizes.size(); i++){
