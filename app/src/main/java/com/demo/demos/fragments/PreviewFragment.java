@@ -4,20 +4,19 @@ package com.demo.demos.fragments;
 import android.Manifest;
 import android.app.Activity;
 import android.app.Dialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
-import android.graphics.Point;
+import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
-import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
-import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
+import android.media.ImageReader;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -41,6 +40,7 @@ import com.demo.demos.R;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,7 +60,7 @@ public class PreviewFragment extends Fragment {
     Button btnChangePreviewSize;
     Button btnImageMode;
     Button btnVideoMode;
-//    TextureView previewView;//相机预览view
+    //    TextureView previewView;//相机预览view
     AutoFitTextureView previewView;//自适应相机预览view
 
     CameraManager cameraManager;//相机管理类
@@ -73,6 +73,8 @@ public class PreviewFragment extends Fragment {
     int sizeIndex = 0;
 
     Size previewSize;//预览尺寸
+
+    ImageReader previewReader;
 
     public PreviewFragment() {
         // Required empty public constructor
@@ -94,7 +96,7 @@ public class PreviewFragment extends Fragment {
         initViews(view);
     }
 
-    private void initCamera(){
+    private void initCamera() {
         cameraManager = CameraUtils.getInstance().getCameraManager();
         cameraId = CameraUtils.getInstance().getCameraId(false);//默认使用后置相机
         //获取指定相机的输出尺寸列表，并降序排序
@@ -110,7 +112,7 @@ public class PreviewFragment extends Fragment {
         previewSize = outputSizes.get(0);
     }
 
-    private void initViews(View view){
+    private void initViews(View view) {
         btnChangePreviewSize = view.findViewById(R.id.btn_change_preview_size);
         btnChangePreviewSize.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -143,11 +145,6 @@ public class PreviewFragment extends Fragment {
 
         previewView = view.findViewById(R.id.afttv_camera);
         previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
 
         //设置 TextureView 的状态监听
         previewView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
@@ -176,6 +173,21 @@ public class PreviewFragment extends Fragment {
         });
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (cameraDevice == null) {
+            openCamera();
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        releaseCamera();
+    }
+
     private void openCamera() {
         //申请相机权限
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
@@ -189,6 +201,9 @@ public class PreviewFragment extends Fragment {
                     new CameraDevice.StateCallback() {
                         @Override
                         public void onOpened(CameraDevice camera) {
+                            if (camera == null){
+                                return;
+                            }
                             cameraDevice = camera;
                             //创建相机预览 session
                             createPreviewSession();
@@ -197,13 +212,13 @@ public class PreviewFragment extends Fragment {
                         @Override
                         public void onDisconnected(CameraDevice camera) {
                             //释放相机资源
-                            CameraUtils.getInstance().releaseCamera(camera);
+                            releaseCamera();
                         }
 
                         @Override
                         public void onError(CameraDevice camera, int error) {
                             //释放相机资源
-                            CameraUtils.getInstance().releaseCamera(camera);
+                            releaseCamera();
                         }
                     },
                     null);
@@ -213,14 +228,35 @@ public class PreviewFragment extends Fragment {
     }
 
     private void createPreviewSession() {
+        //关闭之前的会话
+        CameraUtils.getInstance().releaseImageReader(previewReader);
+        CameraUtils.getInstance().releaseCameraSession(cameraCaptureSession);
         //根据TextureView 和 选定的 previewSize 创建用于显示预览数据的Surface
         SurfaceTexture surfaceTexture = previewView.getSurfaceTexture();
         surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());//设置SurfaceTexture缓冲区大小
         final Surface previewSurface = new Surface(surfaceTexture);
+        //获取 ImageReader 和 surface
+        previewReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.JPEG, 2);
+        previewReader.setOnImageAvailableListener(
+                new ImageReader.OnImageAvailableListener() {
+                    @Override
+                    public void onImageAvailable(ImageReader reader) {
+                        Image image = reader.acquireLatestImage();
+                        if (image != null){
+                            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                            byte[] data = new byte[buffer.remaining()];
+                            Log.d(TAG, "data-size=" + data.length);
+                            buffer.get(data);
+                            image.close();
+                        }
+                    }
+                },
+                null);
+        final Surface readerSurface = previewReader.getSurface();
 
         try {
             //创建预览session
-            cameraDevice.createCaptureSession(Arrays.asList(previewSurface),
+            cameraDevice.createCaptureSession(Arrays.asList(previewSurface, readerSurface),
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(CameraCaptureSession session) {
@@ -231,6 +267,7 @@ public class PreviewFragment extends Fragment {
                                 //构建预览捕获请求
                                 CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
                                 builder.addTarget(previewSurface);//设置 previewSurface 作为预览数据的显示界面
+                                builder.addTarget(readerSurface);
                                 CaptureRequest captureRequest = builder.build();
                                 //设置重复请求，以获取连续预览数据
                                 session.setRepeatingRequest(captureRequest, new CameraCaptureSession.CaptureCallback() {
@@ -262,10 +299,10 @@ public class PreviewFragment extends Fragment {
 
     }
 
-    private void updateCameraPreview(){
-        if (sizeIndex + 1 < outputSizes.size()){
+    private void updateCameraPreview() {
+        if (sizeIndex + 1 < outputSizes.size()) {
             sizeIndex++;
-        }else {
+        } else {
             sizeIndex = 0;
         }
         previewSize = outputSizes.get(sizeIndex);
@@ -274,23 +311,23 @@ public class PreviewFragment extends Fragment {
         createPreviewSession();
     }
 
-    private void updateCameraPreviewWithImageMode(){
+    private void updateCameraPreviewWithImageMode() {
         previewSize = outputSizes.get(0);
         previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
         createPreviewSession();
     }
 
-    private void updateCameraPreviewWithVideoMode(){
+    private void updateCameraPreviewWithVideoMode() {
         List<Size> sizes = new ArrayList<>();
         //计算预览窗口高宽比，高宽比，高宽比
         float ratio = ((float) previewView.getHeight() / previewView.getWidth());
         //首先选取宽高比与预览窗口高宽比一致且最大的输出尺寸
-        for (int i = 0; i < outputSizes.size(); i++){
-            if (((float)outputSizes.get(i).getWidth()) / outputSizes.get(i).getHeight() == ratio){
+        for (int i = 0; i < outputSizes.size(); i++) {
+            if (((float) outputSizes.get(i).getWidth()) / outputSizes.get(i).getHeight() == ratio) {
                 sizes.add(outputSizes.get(i));
             }
         }
-        if (sizes.size() > 0){
+        if (sizes.size() > 0) {
             previewSize = Collections.max(sizes, new CompareSizesByArea());
             previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
             createPreviewSession();
@@ -299,25 +336,25 @@ public class PreviewFragment extends Fragment {
         //如果不存在宽高比与预览窗口高宽比一致的输出尺寸，则选择与其高宽比最接近的输出尺寸
         sizes.clear();
         float detRatioMin = Float.MAX_VALUE;
-        for (int i = 0; i < outputSizes.size(); i++){
+        for (int i = 0; i < outputSizes.size(); i++) {
             Size size = outputSizes.get(i);
-            float curRatio = ((float)size.getWidth()) / size.getHeight();
-            if (Math.abs(curRatio - ratio) < detRatioMin){
+            float curRatio = ((float) size.getWidth()) / size.getHeight();
+            if (Math.abs(curRatio - ratio) < detRatioMin) {
                 detRatioMin = curRatio;
                 previewSize = size;
             }
         }
-        if (previewSize.getWidth() * previewSize.getHeight() > PREVIEW_SIZE_MIN){
+        if (previewSize.getWidth() * previewSize.getHeight() > PREVIEW_SIZE_MIN) {
             previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
             createPreviewSession();
         }
         //如果宽高比最接近的输出尺寸太小，则选择与预览窗口面积最接近的输出尺寸
         long area = previewView.getWidth() * previewView.getHeight();
         long detAreaMin = Long.MAX_VALUE;
-        for (int i = 0; i < outputSizes.size(); i++){
+        for (int i = 0; i < outputSizes.size(); i++) {
             Size size = outputSizes.get(i);
             long curArea = size.getWidth() * size.getHeight();
-            if (Math.abs(curArea - area) < detAreaMin){
+            if (Math.abs(curArea - area) < detAreaMin) {
                 detAreaMin = curArea;
                 previewSize = size;
             }
@@ -326,7 +363,13 @@ public class PreviewFragment extends Fragment {
         createPreviewSession();
     }
 
-    private void setButtonText(){
+    private void releaseCamera(){
+        CameraUtils.getInstance().releaseImageReader(previewReader);
+        CameraUtils.getInstance().releaseCameraSession(cameraCaptureSession);
+        CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
+    }
+
+    private void setButtonText() {
         btnChangePreviewSize.setText(previewSize.getWidth() + "-" + previewSize.getHeight());
     }
 
@@ -382,7 +425,7 @@ public class PreviewFragment extends Fragment {
                     .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            activity.finish();
+
                         }
                     })
                     .create();
