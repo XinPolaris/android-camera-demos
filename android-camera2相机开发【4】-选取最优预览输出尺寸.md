@@ -57,6 +57,7 @@
 ```java
     private void updateCameraPreviewWithImageMode(){
         previewSize = outputSizes.get(0);
+        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
         createPreviewSession();
     }
 ```
@@ -66,7 +67,8 @@
 ```java
     private void updateCameraPreviewWithVideoMode(){
         List<Size> sizes = new ArrayList<>();
-        float ratio = ((float) previewView.getWidth() / previewView.getHeight());
+        //计算预览窗口高宽比，高宽比，高宽比
+        float ratio = ((float) previewView.getHeight / previewView.getWidth());
         //首先选取宽高比与预览窗口高宽比一致且最大的输出尺寸
         for (int i = 0; i < outputSizes.size(); i++){
             if (((float)outputSizes.get(i).getWidth()) / outputSizes.get(i).getHeight() == ratio){
@@ -75,6 +77,7 @@
         }
         if (sizes.size() > 0){
             previewSize = Collections.max(sizes, new CompareSizesByArea());
+            previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
             createPreviewSession();
             return;
         }
@@ -90,6 +93,7 @@
             }
         }
         if (previewSize.getWidth() * previewSize.getHeight() > PREVIEW_SIZE_MIN){
+            previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
             createPreviewSession();
         }
         //如果宽高比最接近的输出尺寸太小，则选择与预览窗口面积最接近的输出尺寸
@@ -103,6 +107,7 @@
                 previewSize = size;
             }
         }
+        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
         createPreviewSession();
     }
 ```
