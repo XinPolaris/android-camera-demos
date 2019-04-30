@@ -85,6 +85,9 @@ public class PhotoFragment extends Fragment {
     Surface previewSurface;
     Surface photoSurface;
 
+    int cameraOritation;
+    int displayRotation;
+
     public PhotoFragment() {
         // Required empty public constructor
     }
@@ -185,12 +188,6 @@ public class PhotoFragment extends Fragment {
         }
     }
 
-    private void releaseCamera() {
-        CameraUtils.getInstance().releaseImageReader(photoReader);
-        CameraUtils.getInstance().releaseCameraSession(captureSession);
-        CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
-    }
-
     private void writeImageToFile() {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -226,6 +223,15 @@ public class PhotoFragment extends Fragment {
         }
     }
 
+    private int getOritation(){
+        return (PHOTO_ORITATION.get(displayRotation) + cameraOritation + 270) % 360;
+    }
+
+    private void releaseCamera() {
+        CameraUtils.getInstance().releaseImageReader(photoReader);
+        CameraUtils.getInstance().releaseCameraSession(captureSession);
+        CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
+    }
     /********************************** listener/callback **************************************/
     TextureView.SurfaceTextureListener surfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -264,8 +270,9 @@ public class PhotoFragment extends Fragment {
                 previewRequest = previewRequestBuilder.build();
 
                 photoRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-                int oritation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
-                photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, PHOTO_ORITATION.get(oritation));
+                displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
+                cameraOritation = getOritation();
+                photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, PHOTO_ORITATION.get(cameraOritation));
                 photoRequestBuilder.addTarget(photoSurface);
                 photoRequest = photoRequestBuilder.build();
 
