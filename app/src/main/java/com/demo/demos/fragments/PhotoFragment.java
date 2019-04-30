@@ -2,6 +2,7 @@ package com.demo.demos.fragments;
 
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -25,8 +26,10 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
+import android.os.Environment;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
@@ -39,6 +42,11 @@ import com.demo.demos.R;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
@@ -50,6 +58,15 @@ public class PhotoFragment extends Fragment {
     private static final String TAG = "PhotoFragment";
     private static final int PERMISSION_REQUEST_CAMERA = 0;
     private static final int PERMISSION_REQUEST_STORAGE = 1;
+
+    private static final SparseIntArray PHOTO_ORITATION = new SparseIntArray();
+
+    static {
+        PHOTO_ORITATION.append(Surface.ROTATION_0, 90);
+        PHOTO_ORITATION.append(Surface.ROTATION_90, 0);
+        PHOTO_ORITATION.append(Surface.ROTATION_180, 270);
+        PHOTO_ORITATION.append(Surface.ROTATION_270, 180);
+    }
 
     Button btnPhoto;
     AutoFitTextureView previewView;
@@ -75,6 +92,14 @@ public class PhotoFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Inflate the layout for this fragment
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestStoragePermission();
+        }
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestCameraPermission();
+        }
         return inflater.inflate(R.layout.fragment_photo, container, false);
     }
 
@@ -122,9 +147,9 @@ public class PhotoFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (previewView.isAvailable()){
+        if (previewView.isAvailable()) {
             openCamera();
-        }else {
+        } else {
             previewView.setSurfaceTextureListener(surfaceTextureListener);
         }
     }
@@ -135,12 +160,12 @@ public class PhotoFragment extends Fragment {
         releaseCamera();
     }
 
+    @SuppressLint("MissingPermission")
     private void openCamera() {
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             requestCameraPermission();
-        }else if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
-                == PackageManager.PERMISSION_GRANTED){
+        } else {
             try {
                 cameraManager.openCamera(cameraId, cameraStateCallback, null);
             } catch (CameraAccessException e) {
@@ -164,6 +189,41 @@ public class PhotoFragment extends Fragment {
         CameraUtils.getInstance().releaseImageReader(photoReader);
         CameraUtils.getInstance().releaseCameraSession(captureSession);
         CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
+    }
+
+    private void writeImageToFile() {
+        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestStoragePermission();
+        } else {
+            String filePath = Environment.getExternalStorageDirectory() + "/DCIM/Camera/001.jpg";
+            Image image = photoReader.acquireNextImage();
+            if (image == null) {
+                return;
+            }
+            ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
+            byte[] data = new byte[byteBuffer.remaining()];
+            byteBuffer.get(data);
+            FileOutputStream fos = null;
+            try {
+                fos = new FileOutputStream(new File(filePath));
+                fos.write(data);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    fos.close();
+                    fos = null;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    image.close();
+                    image = null;
+                }
+            }
+        }
     }
 
     /********************************** listener/callback **************************************/
@@ -204,6 +264,8 @@ public class PhotoFragment extends Fragment {
                 previewRequest = previewRequestBuilder.build();
 
                 photoRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+                int oritation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
+                photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, PHOTO_ORITATION.get(oritation));
                 photoRequestBuilder.addTarget(photoSurface);
                 photoRequest = photoRequestBuilder.build();
 
@@ -262,11 +324,7 @@ public class PhotoFragment extends Fragment {
     ImageReader.OnImageAvailableListener photoReaderImgListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Image image = reader.acquireNextImage();
-            if (image != null) {
-                Log.d(TAG, "image:" + image.getWidth() + "-" + image.getHeight());
-                image.close();
-            }
+            writeImageToFile();
         }
     };
 
@@ -279,14 +337,11 @@ public class PhotoFragment extends Fragment {
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == PERMISSION_REQUEST_CAMERA) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openCamera();
-            }
+    private void requestStoragePermission() {
+        if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            new ConfirmationDialog().show(getChildFragmentManager(), "dialog");
         } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
         }
     }
 
@@ -297,7 +352,7 @@ public class PhotoFragment extends Fragment {
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final Fragment parent = getParentFragment();
             return new AlertDialog.Builder(getActivity())
-                    .setMessage("请给予相机权限")
+                    .setMessage("请给予相机、文件读写权限")
                     .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
