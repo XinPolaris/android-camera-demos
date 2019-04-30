@@ -135,6 +135,10 @@ public class CameraUtils {
         }
     }
 
+    /**
+     * 关闭 ImageReader
+     * @param reader
+     */
     public void releaseImageReader(ImageReader reader){
         if (reader != null){
             reader.close();
