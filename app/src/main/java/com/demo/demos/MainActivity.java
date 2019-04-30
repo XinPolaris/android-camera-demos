@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.demo.demos.fragments.PhotoFragment;
 import com.demo.demos.fragments.PreviewFragment;
 import com.demo.demos.utils.CameraUtils;
 
@@ -19,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
         if (null == savedInstanceState){
             getSupportFragmentManager()
                     .beginTransaction()
-                    .replace(R.id.container_camera, new PreviewFragment())
+                    .replace(R.id.container_camera, new PhotoFragment())
                     .commit();
         }
     }
