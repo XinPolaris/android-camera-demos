@@ -99,15 +99,8 @@ public class PreviewFragment extends Fragment {
     private void initCamera() {
         cameraManager = CameraUtils.getInstance().getCameraManager();
         cameraId = CameraUtils.getInstance().getCameraId(false);//默认使用后置相机
-        //获取指定相机的输出尺寸列表，并降序排序
+        //获取指定相机的输出尺寸列表，降序排序
         outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
-        Collections.sort(outputSizes, new Comparator<Size>() {
-            @Override
-            public int compare(Size o1, Size o2) {
-                return o1.getWidth() * o1.getHeight() - o2.getWidth() * o2.getHeight();
-            }
-        });
-        Collections.reverse(outputSizes);
         //初始化预览尺寸
         previewSize = outputSizes.get(0);
     }
@@ -328,7 +321,7 @@ public class PreviewFragment extends Fragment {
             }
         }
         if (sizes.size() > 0) {
-            previewSize = Collections.max(sizes, new CompareSizesByArea());
+            previewSize = Collections.max(sizes, new CameraUtils.CompareSizesByArea());
             previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
             createPreviewSession();
             return;
@@ -371,15 +364,6 @@ public class PreviewFragment extends Fragment {
 
     private void setButtonText() {
         btnChangePreviewSize.setText(previewSize.getWidth() + "-" + previewSize.getHeight());
-    }
-
-    static class CompareSizesByArea implements Comparator<Size> {
-        @Override
-        public int compare(Size lhs, Size rhs) {
-            return Long.signum((long) lhs.getWidth() * lhs.getHeight() -
-                    (long) rhs.getWidth() * rhs.getHeight());
-        }
-
     }
 
     /******************************** 权限/对话框 ************************************************/

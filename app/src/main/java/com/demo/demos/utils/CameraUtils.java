@@ -12,6 +12,8 @@ import android.media.ImageReader;
 import android.util.Size;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -78,7 +80,7 @@ public class CameraUtils {
     }
 
     /**
-     * 根据输出类获取指定相机的输出尺寸列表
+     * 根据输出类获取指定相机的输出尺寸列表，降序排序
      * @param cameraId 相机id
      * @param clz 输出类
      * @return
@@ -87,7 +89,15 @@ public class CameraUtils {
         try {
             CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
             StreamConfigurationMap configs = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-            return Arrays.asList(configs.getOutputSizes(clz));
+            List<Size> sizes = Arrays.asList(configs.getOutputSizes(clz));
+            Collections.sort(sizes, new Comparator<Size>() {
+                @Override
+                public int compare(Size o1, Size o2) {
+                    return o1.getWidth() * o1.getHeight() - o2.getWidth() * o2.getHeight();
+                }
+            });
+            Collections.reverse(sizes);
+            return sizes;
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -143,6 +153,14 @@ public class CameraUtils {
         if (reader != null){
             reader.close();
             reader = null;
+        }
+    }
+
+    public static class CompareSizesByArea implements Comparator<Size> {
+        @Override
+        public int compare(Size lhs, Size rhs) {
+            return Long.signum((long) lhs.getWidth() * lhs.getHeight() -
+                    (long) rhs.getWidth() * rhs.getHeight());
         }
     }
 }
