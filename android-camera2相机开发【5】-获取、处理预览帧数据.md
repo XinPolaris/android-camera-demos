@@ -8,6 +8,8 @@ ImageReader 使用之前，需要设置一个监听 `OnImageAvailableListener`�
 
 最后，构建捕获请求时，需要将 ImageReader 的 Surface 添加进去。
 
+相机使用完关闭时，需要将 ImageReader 也关闭。
+
 ```java
         //获取 ImageReader 和 surface
         //前三个参数分别是需要的尺寸和格式，最后一个参数代表每次最多获取几帧数据，本例的2代表ImageReader中最多可以获取两帧图像流
@@ -42,6 +44,12 @@ ImageReader 使用之前，需要设置一个监听 `OnImageAvailableListener`�
         //构建预览捕获请求时，添加 readerSurface
         CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
         builder.addTarget(readerSurface);
+        
+        //释放ImageReader资源
+        if (previewReader != null){
+            previewReader.close();
+            previewReader = null;
+        }
 ```
 
 
