@@ -8,6 +8,8 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -115,6 +117,11 @@ public class PhotoFragment extends Fragment {
         initViews(view);
     }
 
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+    }
+
     private void initCamera() {
         cameraManager = CameraUtils.getInstance().getCameraManager();
         cameraId = CameraUtils.getInstance().getBackCameraId();
@@ -133,14 +140,10 @@ public class PhotoFragment extends Fragment {
 
         previewView = view.findViewById(R.id.preview_view);
         previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
-        previewView.setSurfaceTextureListener(surfaceTextureListener);
     }
 
     private void initReaderAndSurface() {
-        //初始化预览 Surface
-        SurfaceTexture surfaceTexture = previewView.getSurfaceTexture();
-        surfaceTexture.setDefaultBufferSize(photoSize.getWidth(), photoSize.getHeight());//设置SurfaceTexture缓冲区大小
-        previewSurface = new Surface(surfaceTexture);
+
         //初始化拍照 ImageReader
         photoReader = ImageReader.newInstance(photoSize.getWidth(), photoSize.getHeight(), ImageFormat.JPEG, 2);
         photoReader.setOnImageAvailableListener(photoReaderImgListener, null);
@@ -159,8 +162,8 @@ public class PhotoFragment extends Fragment {
 
     @Override
     public void onPause() {
-        super.onPause();
         releaseCamera();
+        super.onPause();
     }
 
     @SuppressLint("MissingPermission")
@@ -170,6 +173,7 @@ public class PhotoFragment extends Fragment {
             requestCameraPermission();
         } else {
             try {
+                configureTransform(previewView.getWidth(), previewView.getHeight());
                 cameraManager.openCamera(cameraId, cameraStateCallback, null);
             } catch (CameraAccessException e) {
                 e.printStackTrace();
@@ -178,8 +182,40 @@ public class PhotoFragment extends Fragment {
         }
     }
 
+    private void configureTransform(int viewWidth, int viewHeight) {
+        Activity activity = getActivity();
+        if (null == previewView || null == photoSize || null == activity) {
+            return;
+        }
+        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+        Matrix matrix = new Matrix();
+        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
+        RectF bufferRect = new RectF(0, 0, photoSize.getHeight(), photoSize.getWidth());
+        float centerX = viewRect.centerX();
+        float centerY = viewRect.centerY();
+        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
+            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
+            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
+            float scale = Math.max(
+                    (float) viewHeight / photoSize.getHeight(),
+                    (float) viewWidth / photoSize.getWidth());
+            matrix.postScale(scale, scale, centerX, centerY);
+            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
+        } else if (Surface.ROTATION_180 == rotation) {
+            matrix.postRotate(180, centerX, centerY);
+        }
+        previewView.setTransform(matrix);
+    }
+
     private void takePhoto() {
         try {
+            photoRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
+            cameraOritation = PHOTO_ORITATION.get(displayRotation);
+            photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, cameraOritation);
+            photoRequestBuilder.addTarget(photoSurface);
+            photoRequest = photoRequestBuilder.build();
+
             captureSession.stopRepeating();
             captureSession.capture(photoRequest, sessionCaptureCallback, null);
         } catch (CameraAccessException e) {
@@ -223,10 +259,6 @@ public class PhotoFragment extends Fragment {
         }
     }
 
-    private int getOritation(){
-        return (PHOTO_ORITATION.get(displayRotation) + cameraOritation + 270) % 360;
-    }
-
     private void releaseCamera() {
         CameraUtils.getInstance().releaseImageReader(photoReader);
         CameraUtils.getInstance().releaseCameraSession(captureSession);
@@ -242,7 +274,7 @@ public class PhotoFragment extends Fragment {
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-
+            configureTransform(width, height);
         }
 
         @Override
@@ -265,16 +297,18 @@ public class PhotoFragment extends Fragment {
 
             cameraDevice = camera;
             try {
+                //初始化预览 Surface
+                SurfaceTexture surfaceTexture = previewView.getSurfaceTexture();
+                if (surfaceTexture == null){
+                    return;
+                }
+
+                surfaceTexture.setDefaultBufferSize(photoSize.getWidth(), photoSize.getHeight());//设置SurfaceTexture缓冲区大小
+                previewSurface = new Surface(surfaceTexture);
+
                 previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
                 previewRequestBuilder.addTarget(previewSurface);
                 previewRequest = previewRequestBuilder.build();
-
-                photoRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-                displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
-                cameraOritation = getOritation();
-                photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, PHOTO_ORITATION.get(cameraOritation));
-                photoRequestBuilder.addTarget(photoSurface);
-                photoRequest = photoRequestBuilder.build();
 
                 cameraDevice.createCaptureSession(Arrays.asList(previewSurface, photoSurface), sessionsStateCallback, null);
             } catch (CameraAccessException e) {
