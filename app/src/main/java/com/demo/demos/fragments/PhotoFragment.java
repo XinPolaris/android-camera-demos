@@ -138,8 +138,13 @@ public class PhotoFragment extends Fragment {
             }
         });
 
+        displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
         previewView = view.findViewById(R.id.preview_view);
-        previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
+        if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
+            previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
+        }else {
+            previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
+        }
     }
 
     private void initReaderAndSurface() {
@@ -173,6 +178,12 @@ public class PhotoFragment extends Fragment {
             requestCameraPermission();
         } else {
             try {
+                displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
+                if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
+                    previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
+                }else {
+                    previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
+                }
                 configureTransform(previewView.getWidth(), previewView.getHeight());
                 cameraManager.openCamera(cameraId, cameraStateCallback, null);
             } catch (CameraAccessException e) {
@@ -210,7 +221,6 @@ public class PhotoFragment extends Fragment {
     private void takePhoto() {
         try {
             photoRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
             cameraOritation = PHOTO_ORITATION.get(displayRotation);
             photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, cameraOritation);
             photoRequestBuilder.addTarget(photoSurface);
