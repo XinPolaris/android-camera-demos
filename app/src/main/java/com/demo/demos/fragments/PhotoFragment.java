@@ -138,13 +138,7 @@ public class PhotoFragment extends Fragment {
             }
         });
 
-        displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
         previewView = view.findViewById(R.id.preview_view);
-        if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
-            previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
-        }else {
-            previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
-        }
     }
 
     private void initReaderAndSurface() {
