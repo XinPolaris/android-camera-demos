@@ -5,12 +5,13 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
@@ -23,11 +24,12 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
-import android.os.Environment;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -49,10 +51,6 @@ import com.demo.demos.R;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,7 +75,7 @@ public class FilterFragment extends Fragment {
     }
 
     private static final List<float[]> colorMatrixs = new ArrayList<>();
-    int colorMatrixsIndex = 0;
+    static int colorMatrixsIndex = 0;
 
     static {
         float[] grayColorMatrix = {
@@ -123,6 +121,10 @@ public class FilterFragment extends Fragment {
     int cameraOritation;
     int displayRotation;
 
+    private HandlerThread cameraThread;
+    private Handler cameraHandler;
+
+
     public FilterFragment() {
         // Required empty public constructor
     }
@@ -159,7 +161,7 @@ public class FilterFragment extends Fragment {
         cameraManager = CameraUtils.getInstance().getCameraManager();
         cameraId = CameraUtils.getInstance().getBackCameraId();
         outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
-        photoSize = outputSizes.get(0);
+        photoSize = outputSizes.get(outputSizes.size() -4);
     }
 
     private void initViews(View view) {
@@ -168,7 +170,7 @@ public class FilterFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 colorMatrixsIndex++;
-                if (colorMatrixsIndex >= colorMatrixs.size()){
+                if (colorMatrixsIndex >= colorMatrixs.size()) {
                     colorMatrixsIndex = 0;
                 }
             }
@@ -180,6 +182,9 @@ public class FilterFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+
+        startCameraThread();
+
         if (previewView.isAvailable()) {
             openCamera();
         } else {
@@ -190,6 +195,7 @@ public class FilterFragment extends Fragment {
     @Override
     public void onPause() {
         releaseCamera();
+        stopCameraThread();
         super.onPause();
     }
 
@@ -206,38 +212,12 @@ public class FilterFragment extends Fragment {
                 } else {
                     previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
                 }
-//                configureTransform(previewView.getWidth(), previewView.getHeight());
-                cameraManager.openCamera(cameraId, cameraStateCallback, null);
+                cameraManager.openCamera(cameraId, cameraStateCallback, cameraHandler);
             } catch (CameraAccessException e) {
                 e.printStackTrace();
                 Log.d(TAG, "相机访问异常");
             }
         }
-    }
-
-    private void configureTransform(int viewWidth, int viewHeight) {
-        Activity activity = getActivity();
-        if (null == previewView || null == photoSize || null == activity) {
-            return;
-        }
-        int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
-        Matrix matrix = new Matrix();
-        RectF viewRect = new RectF(0, 0, viewWidth, viewHeight);
-        RectF bufferRect = new RectF(0, 0, photoSize.getHeight(), photoSize.getWidth());
-        float centerX = viewRect.centerX();
-        float centerY = viewRect.centerY();
-        if (Surface.ROTATION_90 == rotation || Surface.ROTATION_270 == rotation) {
-            bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY());
-            matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL);
-            float scale = Math.max(
-                    (float) viewHeight / photoSize.getHeight(),
-                    (float) viewWidth / photoSize.getWidth());
-            matrix.postScale(scale, scale, centerX, centerY);
-            matrix.postRotate(90 * (rotation - 2), centerX, centerY);
-        } else if (Surface.ROTATION_180 == rotation) {
-            matrix.postRotate(180, centerX, centerY);
-        }
-        previewView.setTransform(matrix);
     }
 
     private void createImageReaderAndSurface() {
@@ -246,61 +226,34 @@ public class FilterFragment extends Fragment {
                 new ImageReader.OnImageAvailableListener() {
                     @Override
                     public void onImageAvailable(ImageReader reader) {
-                        Image image = reader.acquireLatestImage();
-                        if (image != null) {
-                            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                            byte[] data = new byte[buffer.remaining()];
-                            Log.d(TAG, "yuv-420_888_data-size=" + data.length/1024 + "kb");
-                            buffer.get(data);
-                            drawPreviewOutput(BitmapFactory.decodeByteArray(data, 0, data.length));
-                            image.close();
-                        }
+                        cameraHandler.post(new PreviewProcessor(getContext(), reader,
+                                displayRotation, photoSize, previewView));
                     }
                 },
-                null);
+                cameraHandler);
         readerSurface = previewReader.getSurface();
-    }
-
-    private void drawPreviewOutput(Bitmap bitmap) {
-        Log.d(TAG, "drawPreviewOutput: 绘制中");
-        Canvas canvas = previewView.lockCanvas();
-        if (canvas == null) {
-            return;
-        }
-        Paint paint = new Paint();
-        paint.setColorFilter(getColorMatrix());
-        canvas.drawBitmap(bitmap, getTransformMatrix(bitmap.getWidth(), bitmap.getHeight()), paint);
-        previewView.unlockCanvasAndPost(canvas);
-    }
-
-
-    private Matrix getTransformMatrix(int bitmapWidth, int bitmapHeight) {
-        int rotation = PHOTO_ORITATION.get(displayRotation);
-
-        Matrix matrix = new Matrix();
-
-        float dx = (previewView.getWidth() - bitmapWidth) / 2;
-        float dy = (previewView.getHeight() - bitmapHeight) / 2;
-        matrix.postTranslate(dx, dy);
-
-        matrix.postRotate(rotation, previewView.getWidth() / 2, previewView.getHeight() / 2);
-
-        float scaleW = ((float) previewView.getWidth()) / bitmapWidth;
-        float scaleH = ((float) previewView.getHeight()) / bitmapHeight;
-        float scale = Math.max(scaleW, scaleH);
-        matrix.postScale(scale, scale, previewView.getWidth() / 2, previewView.getHeight() / 2);
-        return matrix;
-    }
-
-    private ColorMatrixColorFilter getColorMatrix() {
-        ColorMatrix colorMatrix = new ColorMatrix();
-        colorMatrix.set(colorMatrixs.get(colorMatrixsIndex));
-        return new ColorMatrixColorFilter(colorMatrix);
     }
 
     private void releaseCamera() {
         CameraUtils.getInstance().releaseCameraSession(captureSession);
         CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
+    }
+
+    private void startCameraThread() {
+        cameraThread = new HandlerThread("cameraThread");
+        cameraThread.start();
+        cameraHandler = new Handler(cameraThread.getLooper());
+    }
+
+    private void stopCameraThread() {
+        cameraThread.quitSafely();
+        try {
+            cameraThread.join();
+            cameraThread = null;
+            cameraHandler = null;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /********************************** listener/callback **************************************/
@@ -313,7 +266,6 @@ public class FilterFragment extends Fragment {
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-//            configureTransform(width, height);
         }
 
         @Override
@@ -337,21 +289,11 @@ public class FilterFragment extends Fragment {
                 //初始化预览输出ImageReader 和 reader surface
                 createImageReaderAndSurface();
 
-                //初始化预览 Surface
-//                SurfaceTexture surfaceTexture = previewView.getSurfaceTexture();
-//                if (surfaceTexture == null) {
-//                    return;
-//                }
-//
-//                surfaceTexture.setDefaultBufferSize(photoSize.getWidth(), photoSize.getHeight());//设置SurfaceTexture缓冲区大小
-//                previewSurface = new Surface(surfaceTexture);
-
                 previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-//                previewRequestBuilder.addTarget(previewSurface);
                 previewRequestBuilder.addTarget(readerSurface);
                 previewRequest = previewRequestBuilder.build();
 
-                cameraDevice.createCaptureSession(Arrays.asList(readerSurface), sessionsStateCallback, null);
+                cameraDevice.createCaptureSession(Arrays.asList(readerSurface), sessionsStateCallback, cameraHandler);
             } catch (CameraAccessException e) {
                 e.printStackTrace();
                 Log.d(TAG, "相机访问异常");
@@ -378,7 +320,7 @@ public class FilterFragment extends Fragment {
 
             captureSession = session;
             try {
-                captureSession.setRepeatingRequest(previewRequest, null, null);
+                captureSession.setRepeatingRequest(previewRequest, null, cameraHandler);
             } catch (CameraAccessException e) {
                 e.printStackTrace();
                 Log.d(TAG, "相机访问异常");
@@ -407,6 +349,84 @@ public class FilterFragment extends Fragment {
             requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
         }
     }
+
+    /************************************* 内部类 ******************************************/
+    public static class PreviewProcessor implements Runnable {
+        private Context context;
+        private ImageReader imageReader;
+        private TextureView previewView;
+        private int displayRotation, bitmapWidth, bitmapHeight, viewWidth, viewHeight;
+
+        public PreviewProcessor(Context context, ImageReader imageReader, int displayRotation,
+                                Size previewSize, TextureView previewView) {
+            this.context = context;
+            this.imageReader = imageReader;
+            this.displayRotation = displayRotation;
+            this.previewView = previewView;
+            this.bitmapWidth = previewSize.getWidth();
+            this.bitmapHeight = previewSize.getHeight();
+            this.viewWidth = previewView.getWidth();
+            this.viewHeight = previewView.getHeight();
+        }
+
+        private Matrix getTransformMatrix() {
+            int rotation = PHOTO_ORITATION.get(displayRotation);
+
+            Matrix matrix = new Matrix();
+
+            float dx = (viewWidth - bitmapWidth) / 2;
+            float dy = (viewHeight - bitmapHeight) / 2;
+            matrix.postTranslate(dx, dy);
+
+            matrix.postRotate(rotation, viewWidth / 2, viewHeight / 2);
+
+            float scaleW = ((float) viewWidth) / bitmapWidth;
+            float scaleH = ((float) viewHeight) / bitmapHeight;
+            float scale = Math.max(scaleW, scaleH);
+            matrix.postScale(scale, scale, viewWidth / 2, viewHeight / 2);
+            return matrix;
+        }
+
+        private void drawPreviewOutput(Bitmap bitmap) {
+            Log.d(TAG, "drawPreviewOutput: 绘制中");
+            Canvas canvas = previewView.lockCanvas();
+            if (canvas == null) {
+                return;
+            }
+            Paint paint = new Paint();
+            paint.setColorFilter(getColorMatrix());
+            canvas.drawBitmap(bitmap, 0, 0, paint);
+            previewView.unlockCanvasAndPost(canvas);
+        }
+
+        private ColorMatrixColorFilter getColorMatrix() {
+            ColorMatrix colorMatrix = new ColorMatrix();
+            colorMatrix.set(colorMatrixs.get(colorMatrixsIndex));
+            return new ColorMatrixColorFilter(colorMatrix);
+        }
+
+        @Override
+        public void run() {
+            Image image = imageReader.acquireLatestImage();
+            if (image == null) {
+                return;
+            }
+            final ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+            byte[] data = new byte[buffer.remaining()];
+            Log.d(TAG, "data-size=" + data.length / 1024 + "kb");
+            buffer.get(data);
+            Bitmap origin = BitmapFactory.decodeByteArray(data, 0, data.length);
+            final Bitmap newBitmap = Bitmap.createBitmap(origin, 0, 0, origin.getWidth(), origin.getHeight(), getTransformMatrix(), false);
+            ((Activity) context).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    drawPreviewOutput(newBitmap);
+                }
+            });
+            image.close();
+        }
+    }
+
 
     public static class ConfirmationDialog extends DialogFragment {
 
