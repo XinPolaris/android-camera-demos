@@ -235,6 +235,7 @@ public class FilterFragment extends Fragment {
     }
 
     private void releaseCamera() {
+        CameraUtils.getInstance().releaseImageReader(previewReader);
         CameraUtils.getInstance().releaseCameraSession(captureSession);
         CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
     }
