@@ -4,37 +4,15 @@ package com.demo.demos.fragments;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Dialog;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ImageFormat;
-import android.graphics.Matrix;
-import android.graphics.Paint;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
-import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.Fragment;
-
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -44,23 +22,23 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
 import com.demo.demos.R;
+import com.demo.demos.base.BaseFragment;
 import com.demo.demos.render.TextureRender;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
  */
-public class GLFilterFragment extends Fragment {
-    private static final String TAG = "GLFilterFragment";
-    private static final int PERMISSION_REQUEST_CAMERA = 0;
-    private static final int PERMISSION_REQUEST_STORAGE = 1;
+public class GLPreviewFragment extends BaseFragment {
 
     private static final SparseIntArray PHOTO_ORITATION = new SparseIntArray();
 
@@ -90,22 +68,13 @@ public class GLFilterFragment extends Fragment {
 
     private TextureRender textureRender;
 
-    public GLFilterFragment() {
+    public GLPreviewFragment() {
         // Required empty public constructor
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestStoragePermission();
-        }
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestCameraPermission();
-        }
-        return inflater.inflate(R.layout.fragment_filter, container, false);
+        return inflater.inflate(R.layout.fragment_gl_preview, container, false);
     }
 
     @Override
@@ -155,27 +124,23 @@ public class GLFilterFragment extends Fragment {
 
     @SuppressLint("MissingPermission")
     private void openCamera() {
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestCameraPermission();
-        } else {
-            try {
-                displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
-                if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
-                    previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
-                } else {
-                    previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
-                }
-
-                SurfaceTexture surfaceTexture = previewView.getSurfaceTexture();
-                surfaceTexture.setDefaultBufferSize(photoSize.getWidth(), photoSize.getHeight());//设置SurfaceTexture缓冲区大小
-                textureRender.initEGL(surfaceTexture);
-
-                cameraManager.openCamera(cameraId, cameraStateCallback, null);
-            } catch (CameraAccessException e) {
-                e.printStackTrace();
-                Log.d(TAG, "相机访问异常");
+        checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        try {
+            displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
+            if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
+                previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
+            } else {
+                previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
             }
+
+            SurfaceTexture surfaceTexture = previewView.getSurfaceTexture();
+            surfaceTexture.setDefaultBufferSize(photoSize.getWidth(), photoSize.getHeight());//设置SurfaceTexture缓冲区大小
+            textureRender.initEGL(surfaceTexture);
+
+            cameraManager.openCamera(cameraId, cameraStateCallback, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            Log.d(TAG, "相机访问异常");
         }
     }
 
@@ -284,51 +249,4 @@ public class GLFilterFragment extends Fragment {
             Log.d(TAG, "会话注册失败");
         }
     };
-
-    /************************************* 动态权限 ******************************************/
-    private void requestCameraPermission() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-            new ConfirmationDialog().show(getChildFragmentManager(), "dialog");
-        } else {
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, PERMISSION_REQUEST_CAMERA);
-        }
-    }
-
-    private void requestStoragePermission() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            new ConfirmationDialog().show(getChildFragmentManager(), "dialog");
-        } else {
-            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
-        }
-    }
-
-    public static class ConfirmationDialog extends DialogFragment {
-
-        @NonNull
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            final Fragment parent = getParentFragment();
-            return new AlertDialog.Builder(getActivity())
-                    .setMessage("请给予相机、文件读写权限")
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            parent.requestPermissions(new String[]{Manifest.permission.CAMERA},
-                                    PERMISSION_REQUEST_CAMERA);
-                        }
-                    })
-                    .setNegativeButton(android.R.string.cancel,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    Activity activity = parent.getActivity();
-                                    if (activity != null) {
-                                        activity.finish();
-                                    }
-                                }
-                            })
-                    .create();
-        }
-    }
-
 }

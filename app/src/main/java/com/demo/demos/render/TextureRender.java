@@ -131,7 +131,7 @@ public class TextureRender extends HandlerThread {
         //创建屏幕上渲染区域：EGL窗口
         int[] surfaceAttribList = {EGL_NONE};
         eglSurface = eglCreateWindowSurface(eglDisplay, eglConfig, surfaceTexture, surfaceAttribList, 0);
-        Log.d("GLFilterFragment", "createEGL: ");
+        Log.d("GLPreviewFragment", "createEGL: ");
     }
 
     private void destroyEGL(){
@@ -151,7 +151,7 @@ public class TextureRender extends HandlerThread {
     }
 
     public void render(ImageReader imageReader, int width, int height){
-        Log.d("GLFilterFragment", "render: ");
+        Log.d("GLPreviewFragment", "render: ");
 
         Image image = imageReader.acquireLatestImage();
         if (image == null) {

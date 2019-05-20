@@ -1,17 +1,20 @@
 package com.demo.demos;
 
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
 
-import com.demo.demos.fragments.FilterFragment;
-import com.demo.demos.fragments.GLFilterFragment;
 import com.demo.demos.fragments.PhotoFragment;
 import com.demo.demos.fragments.PreviewFragment;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.utils.EGLUtil;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+
+    Button btnPreview, btnCapture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,11 +24,29 @@ public class MainActivity extends AppCompatActivity {
         CameraUtils.init(this);
         EGLUtil.init(this);
 
-        if (null == savedInstanceState){
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.container_camera, new GLFilterFragment())
-                    .commit();
+        btnPreview = findViewById(R.id.btnPreview);
+        btnPreview.setOnClickListener(this);
+
+        btnCapture = findViewById(R.id.btnCapture);
+        btnCapture.setOnClickListener(this);
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.btnPreview:
+                transactFragment(new PreviewFragment());
+                break;
+            case R.id.btnCapture:
+                transactFragment(new PhotoFragment());
+                break;
         }
+    }
+
+    private void transactFragment(Fragment fragment){
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.container_camera,fragment)
+                .commit();
     }
 }

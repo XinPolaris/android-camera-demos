@@ -2,10 +2,7 @@ package com.demo.demos.fragments;
 
 
 import android.Manifest;
-import android.app.Activity;
-import android.app.Dialog;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
+import android.annotation.SuppressLint;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
@@ -18,14 +15,6 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.Fragment;
-
 import android.util.Log;
 import android.util.Size;
 import android.view.LayoutInflater;
@@ -34,9 +23,13 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 import com.demo.demos.R;
+import com.demo.demos.base.BaseFragment;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
 
@@ -44,17 +37,13 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
  * A simple {@link Fragment} subclass.
  */
-public class PreviewFragment extends Fragment {
+public class PreviewFragment extends BaseFragment {
 
-    private static final String TAG = "PreviewFragment";
-    private static final int REQUEST_CAMERA_PERMISSION = 1;
-    private static final String FRAGMENT_DIALOG = "dialog";
     private static final long PREVIEW_SIZE_MIN = 720 * 480;
 
     Button btnChangePreviewSize;
@@ -84,12 +73,13 @@ public class PreviewFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_preview, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
         //初始化相机
         initCamera();
         //初始化界面
@@ -181,42 +171,41 @@ public class PreviewFragment extends Fragment {
         releaseCamera();
     }
 
+    @SuppressLint("MissingPermission")
     private void openCamera() {
-        //申请相机权限
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestCameraPermission();
-            return;
-        }
-        try {
-            //打开相机
-            cameraManager.openCamera(cameraId,
-                    new CameraDevice.StateCallback() {
-                        @Override
-                        public void onOpened(CameraDevice camera) {
-                            if (camera == null){
-                                return;
+        if (hasPermission(Manifest.permission.CAMERA)) {
+            try {
+                //打开相机
+                cameraManager.openCamera(cameraId,
+                        new CameraDevice.StateCallback() {
+                            @Override
+                            public void onOpened(CameraDevice camera) {
+                                if (camera == null) {
+                                    return;
+                                }
+                                cameraDevice = camera;
+                                //创建相机预览 session
+                                createPreviewSession();
                             }
-                            cameraDevice = camera;
-                            //创建相机预览 session
-                            createPreviewSession();
-                        }
 
-                        @Override
-                        public void onDisconnected(CameraDevice camera) {
-                            //释放相机资源
-                            releaseCamera();
-                        }
+                            @Override
+                            public void onDisconnected(CameraDevice camera) {
+                                //释放相机资源
+                                releaseCamera();
+                            }
 
-                        @Override
-                        public void onError(CameraDevice camera, int error) {
-                            //释放相机资源
-                            releaseCamera();
-                        }
-                    },
-                    null);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
+                            @Override
+                            public void onError(CameraDevice camera, int error) {
+                                //释放相机资源
+                                releaseCamera();
+                            }
+                        },
+                        null);
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+            }
+        }else {
+            getPermissions(Manifest.permission.CAMERA);
         }
     }
 
@@ -365,97 +354,4 @@ public class PreviewFragment extends Fragment {
     private void setButtonText() {
         btnChangePreviewSize.setText(previewSize.getWidth() + "-" + previewSize.getHeight());
     }
-
-    /******************************** 权限/对话框 ************************************************/
-
-    private void requestCameraPermission() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-            new ConfirmationDialog().show(getChildFragmentManager(), FRAGMENT_DIALOG);
-        } else {
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                ErrorDialog.newInstance("请给予相机权限")
-                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
-    }
-
-    public static class ErrorDialog extends DialogFragment {
-
-        private static final String ARG_MESSAGE = "message";
-
-        public static ErrorDialog newInstance(String message) {
-            ErrorDialog dialog = new ErrorDialog();
-            Bundle args = new Bundle();
-            args.putString(ARG_MESSAGE, message);
-            dialog.setArguments(args);
-            return dialog;
-        }
-
-        @NonNull
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            final Activity activity = getActivity();
-            return new AlertDialog.Builder(activity)
-                    .setMessage(getArguments().getString(ARG_MESSAGE))
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-
-                        }
-                    })
-                    .create();
-        }
-
-    }
-
-    public static class ConfirmationDialog extends DialogFragment {
-
-        @NonNull
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            final Fragment parent = getParentFragment();
-            return new AlertDialog.Builder(getActivity())
-                    .setMessage("请给予相机权限")
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            parent.requestPermissions(new String[]{Manifest.permission.CAMERA},
-                                    REQUEST_CAMERA_PERMISSION);
-                        }
-                    })
-                    .setNegativeButton(android.R.string.cancel,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    Activity activity = parent.getActivity();
-                                    if (activity != null) {
-                                        activity.finish();
-                                    }
-                                }
-                            })
-                    .create();
-        }
-    }
-
-    private void showToast(final String text) {
-        final Activity activity = getActivity();
-        if (activity != null) {
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(activity, text, Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-    }
-
 }

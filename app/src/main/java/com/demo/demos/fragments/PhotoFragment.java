@@ -4,9 +4,6 @@ package com.demo.demos.fragments;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.Dialog;
-import android.content.DialogInterface;
-import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.RectF;
@@ -20,14 +17,6 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.Fragment;
-
 import android.os.Environment;
 import android.util.Log;
 import android.util.Size;
@@ -38,9 +27,13 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 import com.demo.demos.R;
+import com.demo.demos.base.BaseFragment;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
 
@@ -56,10 +49,7 @@ import java.util.List;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class PhotoFragment extends Fragment {
-    private static final String TAG = "PhotoFragment";
-    private static final int PERMISSION_REQUEST_CAMERA = 0;
-    private static final int PERMISSION_REQUEST_STORAGE = 1;
+public class PhotoFragment extends BaseFragment {
 
     private static final SparseIntArray PHOTO_ORITATION = new SparseIntArray();
 
@@ -96,15 +86,6 @@ public class PhotoFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestStoragePermission();
-        }
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestCameraPermission();
-        }
         return inflater.inflate(R.layout.fragment_photo, container, false);
     }
 
@@ -167,15 +148,12 @@ public class PhotoFragment extends Fragment {
 
     @SuppressLint("MissingPermission")
     private void openCamera() {
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestCameraPermission();
-        } else {
+        if (hasPermission(Manifest.permission.CAMERA)) {
             try {
                 displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
                 if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
                     previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
-                }else {
+                } else {
                     previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
                 }
                 configureTransform(previewView.getWidth(), previewView.getHeight());
@@ -184,6 +162,8 @@ public class PhotoFragment extends Fragment {
                 e.printStackTrace();
                 Log.d(TAG, "相机访问异常");
             }
+        }else {
+            getPermissions(Manifest.permission.CAMERA);
         }
     }
 
@@ -229,10 +209,7 @@ public class PhotoFragment extends Fragment {
     }
 
     private void writeImageToFile() {
-        if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            requestStoragePermission();
-        } else {
+        if (hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
             String filePath = Environment.getExternalStorageDirectory() + "/DCIM/Camera/001.jpg";
             Image image = photoReader.acquireNextImage();
             if (image == null) {
@@ -260,6 +237,8 @@ public class PhotoFragment extends Fragment {
                     image = null;
                 }
             }
+        }else {
+            getPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
     }
 
@@ -268,6 +247,7 @@ public class PhotoFragment extends Fragment {
         CameraUtils.getInstance().releaseCameraSession(captureSession);
         CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
     }
+
     /********************************** listener/callback **************************************/
     TextureView.SurfaceTextureListener surfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
@@ -303,7 +283,7 @@ public class PhotoFragment extends Fragment {
             try {
                 //初始化预览 Surface
                 SurfaceTexture surfaceTexture = previewView.getSurfaceTexture();
-                if (surfaceTexture == null){
+                if (surfaceTexture == null) {
                     return;
                 }
 
@@ -372,50 +352,4 @@ public class PhotoFragment extends Fragment {
             writeImageToFile();
         }
     };
-
-    /************************************* 动态权限 ******************************************/
-    private void requestCameraPermission() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-            new ConfirmationDialog().show(getChildFragmentManager(), "dialog");
-        } else {
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, PERMISSION_REQUEST_CAMERA);
-        }
-    }
-
-    private void requestStoragePermission() {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            new ConfirmationDialog().show(getChildFragmentManager(), "dialog");
-        } else {
-            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_STORAGE);
-        }
-    }
-
-    public static class ConfirmationDialog extends DialogFragment {
-
-        @NonNull
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            final Fragment parent = getParentFragment();
-            return new AlertDialog.Builder(getActivity())
-                    .setMessage("请给予相机、文件读写权限")
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            parent.requestPermissions(new String[]{Manifest.permission.CAMERA},
-                                    PERMISSION_REQUEST_CAMERA);
-                        }
-                    })
-                    .setNegativeButton(android.R.string.cancel,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    Activity activity = parent.getActivity();
-                                    if (activity != null) {
-                                        activity.finish();
-                                    }
-                                }
-                            })
-                    .create();
-        }
-    }
 }
