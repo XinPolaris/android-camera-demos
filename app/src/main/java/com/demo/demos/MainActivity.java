@@ -7,14 +7,15 @@ import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
+import com.demo.demos.fragments.GLPreviewFragment;
 import com.demo.demos.fragments.PhotoFragment;
 import com.demo.demos.fragments.PreviewFragment;
 import com.demo.demos.utils.CameraUtils;
-import com.demo.demos.utils.EGLUtil;
+import com.demo.demos.utils.GLUtil;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    Button btnPreview, btnCapture;
+    Button btnPreview, btnCapture, btnGLPreview;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,13 +23,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
 
         CameraUtils.init(this);
-        EGLUtil.init(this);
+        GLUtil.init(this);
 
         btnPreview = findViewById(R.id.btnPreview);
         btnPreview.setOnClickListener(this);
 
         btnCapture = findViewById(R.id.btnCapture);
         btnCapture.setOnClickListener(this);
+
+        btnGLPreview = findViewById(R.id.btnGLPreview);
+        btnGLPreview.setOnClickListener(this);
     }
 
     @Override
@@ -39,6 +43,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
             case R.id.btnCapture:
                 transactFragment(new PhotoFragment());
+                break;
+            case R.id.btnGLPreview:
+                transactFragment(new GLPreviewFragment());
                 break;
         }
     }

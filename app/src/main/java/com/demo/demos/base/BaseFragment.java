@@ -32,6 +32,7 @@ public class BaseFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         checkPermission(Manifest.permission.CAMERA);
         checkPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
     }
