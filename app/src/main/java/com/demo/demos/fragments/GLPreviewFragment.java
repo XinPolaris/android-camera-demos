@@ -71,7 +71,7 @@ public class GLPreviewFragment extends BaseFragment {
         cameraManager = CameraUtils.getInstance().getCameraManager();
         cameraId = CameraUtils.getInstance().getBackCameraId();
         outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
-        photoSize = outputSizes.get(0);
+        photoSize = outputSizes.get(16);
     }
 
     private void initViews(View view) {

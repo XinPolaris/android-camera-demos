@@ -121,4 +121,34 @@ public class GLUtil {
 
         return buffer;
     }
+
+    public static final String VERTEX_ATTRIB_POSITION = "a_Position";
+    public static final int VERTEX_ATTRIB_POSITION_SIZE = 3;
+    public static final String VERTEX_ATTRIB_TEXTURE_POSITION = "a_texCoord";
+    public static final int VERTEX_ATTRIB_TEXTURE_POSITION_SIZE = 2;
+    public static final String UNIFORM_TEXTURE = "s_texture";
+
+    public static final float[] vertex ={
+            -1f,1f,0.0f,//左上
+            -1f,-1f,0.0f,//左下
+            1f,-1f,0.0f,//右下
+            1f,1f,0.0f//右上
+    };
+
+    // 纹理坐标，（s,t）
+    // 使用后置相机，旋转90度
+    // t坐标方向和顶点y坐标反着
+    public static final float[] textureCoordOes = {
+            0.0f,1.0f,
+            1.0f,1.0f,
+            1.0f,0.0f,
+            0.0f,0.0f
+    };
+    //
+    public static final float[] textureCoord = {
+            0.0f,1.0f,
+            0.0f,0.0f,
+            1.0f,0.0f,
+            1.0f,1.0f
+    };
 }
