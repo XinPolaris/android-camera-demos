@@ -11,3 +11,5 @@
 [android-camera2相机开发【5】-获取、处理预览帧数据](./android-camera2相机开发【5】-获取、处理预览帧数据.md)
 
 [android-camera2相机开发【6】-拍照&屏幕旋转适配](./android-camera2相机开发【6】-拍照&屏幕旋转适配.md)
+
+[android-camera2相机开发【7】-使用opengles进行相机预览](./android-camera2相机开发【7】-使用opengles进行相机预览.md)
