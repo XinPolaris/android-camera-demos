@@ -23,7 +23,7 @@ import androidx.fragment.app.Fragment;
 
 import com.demo.demos.R;
 import com.demo.demos.base.BaseFragment;
-import com.demo.demos.render.GLRender;
+import com.demo.demos.render.FBOPreviewRender;
 import com.demo.demos.utils.CameraUtils;
 
 import java.util.Arrays;
@@ -45,7 +45,7 @@ public class GLPreviewFragment extends BaseFragment {
     CaptureRequest.Builder previewRequestBuilder;
     CaptureRequest previewRequest;
 
-    GLRender glRender;
+    FBOPreviewRender fboPreviewRender;
     SurfaceTexture surfaceTexture;
     Surface surface;
 
@@ -77,8 +77,8 @@ public class GLPreviewFragment extends BaseFragment {
     private void initViews(View view) {
         glSurfaceView = view.findViewById(R.id.glSurfaceView);
         glSurfaceView.setEGLContextClientVersion(3);
-        glRender = new GLRender();
-        glSurfaceView.setRenderer(glRender);
+        fboPreviewRender = new FBOPreviewRender();
+        glSurfaceView.setRenderer(fboPreviewRender);
     }
 
     @Override
@@ -118,7 +118,7 @@ public class GLPreviewFragment extends BaseFragment {
         @Override
         public void onOpened(CameraDevice camera) {
             Log.d(TAG, "相机已启动");
-            surfaceTexture = glRender.getSurfaceTexture();
+            surfaceTexture = fboPreviewRender.getSurfaceTexture();
             if (surfaceTexture == null) {
                 return;
             }
