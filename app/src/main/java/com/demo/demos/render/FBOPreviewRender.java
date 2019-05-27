@@ -54,6 +54,10 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        if (surfaceTexture != null){
+            surfaceTexture.updateTexImage();
+        }
+
         fboOesFilter.setTextureId(cameraTexture);
         fboOesFilter.onDraw();
         baseFilter.setTextureId(fboOesFilter.getOutputTextureId());
@@ -62,14 +66,6 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
 
     private void createTexture(){
         glGenTextures(cameraTexture.length, cameraTexture, 0);
-        //将纹理放到当前单元的 GL_TEXTURE_BINDING_EXTERNAL_OES 目标对象中
-        glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTexture[0]);
-        //设置纹理过滤参数
-        glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-        glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-        glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
     }
 
 }

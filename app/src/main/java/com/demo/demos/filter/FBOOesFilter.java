@@ -1,10 +1,27 @@
 package com.demo.demos.filter;
 
+import android.opengl.GLES11Ext;
+
+import com.demo.demos.R;
+import com.demo.demos.utils.GLUtil;
+
+import java.nio.FloatBuffer;
+
 import static android.opengl.GLES30.*;
+import static com.demo.demos.utils.GLUtil.UNIFORM_TEXTURE;
+import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION;
+import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION_SIZE;
+import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION;
+import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION_SIZE;
+import static com.demo.demos.utils.GLUtil.textureCoord;
+import static com.demo.demos.utils.GLUtil.textureCoordOes;
+import static com.demo.demos.utils.GLUtil.vertex;
+
 /**
  * Created by wangyt on 2019/5/24
  */
-public class FBOOesFilter extends OesFilter {
+public class FBOOesFilter extends OesFilter{
+
     public int[] frameBuffer = new int[1];
     public int[] frameTexture = new int[1];
 
