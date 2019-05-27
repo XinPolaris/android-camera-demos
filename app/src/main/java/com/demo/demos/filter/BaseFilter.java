@@ -64,6 +64,7 @@ public class BaseFilter {
         setViewPort();
         clear();
         useProgram();
+        setExtend();
         bindTexture();
         enableVertexAttribs();
         draw();
@@ -91,6 +92,10 @@ public class BaseFilter {
 
     public void useProgram(){
         glUseProgram(program);
+    }
+
+    public void setExtend(){
+
     }
 
     public void bindTexture(){

@@ -16,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -23,6 +24,7 @@ import androidx.fragment.app.Fragment;
 
 import com.demo.demos.R;
 import com.demo.demos.base.BaseFragment;
+import com.demo.demos.filter.ColorFilter;
 import com.demo.demos.render.FBOPreviewRender;
 import com.demo.demos.utils.CameraUtils;
 
@@ -48,6 +50,8 @@ public class GLPreviewFragment extends BaseFragment {
     FBOPreviewRender fboPreviewRender;
     SurfaceTexture surfaceTexture;
     Surface surface;
+
+    Button btnColorFilter;
 
     public GLPreviewFragment() {
         // Required empty public constructor
@@ -79,6 +83,18 @@ public class GLPreviewFragment extends BaseFragment {
         glSurfaceView.setEGLContextClientVersion(3);
         fboPreviewRender = new FBOPreviewRender();
         glSurfaceView.setRenderer(fboPreviewRender);
+
+        btnColorFilter = view.findViewById(R.id.btnColorFilter);
+        btnColorFilter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ColorFilter.COLOR_FLAG < 3){
+                    ColorFilter.COLOR_FLAG++;
+                }else {
+                    ColorFilter.COLOR_FLAG = 0;
+                }
+            }
+        });
     }
 
     @Override

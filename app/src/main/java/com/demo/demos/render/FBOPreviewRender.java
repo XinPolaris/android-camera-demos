@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView;
 
 import com.demo.demos.R;
 import com.demo.demos.filter.BaseFilter;
+import com.demo.demos.filter.ColorFilter;
 import com.demo.demos.filter.FBOOesFilter;
 import com.demo.demos.utils.GLUtil;
 
@@ -25,11 +26,11 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
     int[] cameraTexture = new int[1];
 
     FBOOesFilter fboOesFilter;
-    BaseFilter baseFilter;
+    ColorFilter baseFilter;
 
     public FBOPreviewRender() {
         fboOesFilter = new FBOOesFilter();
-        baseFilter = new BaseFilter();
+        baseFilter = new ColorFilter();
     }
 
     public SurfaceTexture getSurfaceTexture(){

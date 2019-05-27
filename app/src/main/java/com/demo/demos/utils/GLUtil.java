@@ -127,6 +127,9 @@ public class GLUtil {
     public static final String VERTEX_ATTRIB_TEXTURE_POSITION = "a_texCoord";
     public static final int VERTEX_ATTRIB_TEXTURE_POSITION_SIZE = 2;
     public static final String UNIFORM_TEXTURE = "s_texture";
+    public static final String UNIFORM_COLOR_FLAG = "colorFlag";
+
+
 
     public static final float[] vertex ={
             -1f,1f,0.0f,//左上
