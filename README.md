@@ -13,3 +13,5 @@
 [android-camera2相机开发【6】-拍照&屏幕旋转适配](./android-camera2相机开发【6】-拍照&屏幕旋转适配.md)
 
 [android-camera2相机开发【7】-使用opengles进行相机预览](./android-camera2相机开发【7】-使用opengles进行相机预览.md)
+
+[android-camera2相机开发【8】-使用opengl实现滤镜效果（1）](./android-camera2相机开发【8】-使用opengl实现滤镜效果（1）.md)
