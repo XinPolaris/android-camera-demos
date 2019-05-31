@@ -1,6 +1,8 @@
 package com.demo.demos.utils;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -27,6 +29,40 @@ public class GLUtil {
     public static void init(Context ctx){
         context = ctx;
     }
+
+    /*********************** 纹理 ************************/
+    public static int loadTextureFromBitmap(int resId){
+        //创建纹理对象
+        int[] textureId = new int[1];
+        //生成纹理：纹理数量、保存纹理的数组，数组偏移量
+        glGenTextures(1, textureId,0);
+        if(textureId[0] == 0){
+            Log.e(TAG, "创建纹理对象失败");
+        }
+        //原尺寸加载位图资源（禁止缩放）
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+        Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), resId, options);
+        if (bitmap == null){
+            //删除纹理对象
+            glDeleteTextures(1, textureId, 0);
+            Log.e(TAG, "加载位图失败");
+        }
+        //绑定纹理到opengl
+        glBindTexture(GL_TEXTURE_2D, textureId[0]);
+        //设置放大、缩小时的纹理过滤方式，必须设定，否则纹理全黑
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        //将位图加载到opengl中，并复制到当前绑定的纹理对象上
+        texImage2D(GL_TEXTURE_2D, 0, bitmap, 0);
+        //释放bitmap资源（上面已经把bitmap的数据复制到纹理上了）
+        bitmap.recycle();
+        //解绑当前纹理，防止其他地方以外改变该纹理
+        glBindTexture(GL_TEXTURE_2D, 0);
+        //返回纹理对象
+        return textureId[0];
+    }
+
 
     /*********************** 着色器、程序 ************************/
     public static String loadShaderSource(int resId){
@@ -128,6 +164,7 @@ public class GLUtil {
     public static final int VERTEX_ATTRIB_TEXTURE_POSITION_SIZE = 2;
     public static final String UNIFORM_TEXTURE = "s_texture";
     public static final String UNIFORM_COLOR_FLAG = "colorFlag";
+    public static final String UNIFORM_TEXTURE_LUT = "textureLUT";
 
 
 

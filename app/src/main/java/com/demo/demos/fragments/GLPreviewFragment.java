@@ -88,7 +88,7 @@ public class GLPreviewFragment extends BaseFragment {
         btnColorFilter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (ColorFilter.COLOR_FLAG < 5){
+                if (ColorFilter.COLOR_FLAG < 6){
                     ColorFilter.COLOR_FLAG++;
                 }else {
                     ColorFilter.COLOR_FLAG = 0;
