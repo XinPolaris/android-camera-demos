@@ -25,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import com.demo.demos.R;
 import com.demo.demos.base.BaseFragment;
 import com.demo.demos.filter.ColorFilter;
+import com.demo.demos.filter.FBOOesFilter;
 import com.demo.demos.render.FBOPreviewRender;
 import com.demo.demos.utils.CameraUtils;
 
@@ -51,7 +52,7 @@ public class GLPreviewFragment extends BaseFragment {
     SurfaceTexture surfaceTexture;
     Surface surface;
 
-    Button btnColorFilter;
+    Button btnColorFilter, btnPhoto;
 
     public GLPreviewFragment() {
         // Required empty public constructor
@@ -93,6 +94,14 @@ public class GLPreviewFragment extends BaseFragment {
                 }else {
                     ColorFilter.COLOR_FLAG = 0;
                 }
+            }
+        });
+
+        btnPhoto = view.findViewById(R.id.btnPhoto);
+        btnPhoto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                FBOOesFilter.requestTakePhoto = true;
             }
         });
     }
