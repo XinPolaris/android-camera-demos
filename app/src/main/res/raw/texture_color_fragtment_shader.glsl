@@ -82,6 +82,31 @@ vec4 lookupTable(vec4 color){
     return vec4(newColor.rgb, color.w);
 }
 
+//色调分离
+void posterization(inout vec4 color){
+    //计算灰度值
+    float grayValue = color.r * 0.3 + color.g * 0.59 + color.b * 0.11;
+    //转换到hsl颜色空间
+    vec3 hslColor = vec3(rgb2hsl(color.rgb));
+    //根据灰度值区分阴影和高光，分别处理
+    if(grayValue < 0.3){
+        //添加蓝色
+        if(hslColor.x < 0.68 || hslColor.x > 0.66){
+            hslColor.x = 0.67;
+        }
+        //增加饱和度
+        hslColor.y += 0.3;
+    }else if(grayValue > 0.7){
+        //添加黄色
+        if(hslColor.x < 0.18 || hslColor.x > 0.16){
+            hslColor.x = 0.17;
+        }
+        //降低饱和度
+        hslColor.y -= 0.3;
+    }
+    color = vec4(hsl2rgb(hslColor), color.a);
+}
+
 void main(){
     vec4 tmpColor = texture(s_texture, v_texCoord);
     if (colorFlag == 1){ //灰度
@@ -97,6 +122,8 @@ void main(){
     } else if(colorFlag == 6){//lut
         outColor = lookupTable(tmpColor);
         return;
+    } else if(colorFlag == 7){//色调分离
+        posterization(tmpColor);
     }
 
     outColor = tmpColor;

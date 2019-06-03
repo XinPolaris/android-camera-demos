@@ -200,5 +200,39 @@ void light(inout vec4 color){
 |---|---|
 |![](https://wangyt-imgs.oss-cn-beijing.aliyuncs.com/blog/android-%E7%9B%B8%E6%9C%BA%E5%BC%80%E5%8F%91-%E6%BB%A4%E9%95%9C/007.jpg)|![](https://wangyt-imgs.oss-cn-beijing.aliyuncs.com/blog/android-%E7%9B%B8%E6%9C%BA%E5%BC%80%E5%8F%91-%E6%BB%A4%E9%95%9C/008.jpg)|
 
+### 色调分离
+
+色调分离的原理简单来说就是根据图像的直方图，将图像分为阴影、中间、高光三个部分，在hsl颜色空间中调整每个部分的色相、饱和度。调整色相可以对图像进行色彩调整，调整饱和度可以使图像整体的颜色趋于一个整体的风格。
+
+```
+//色调分离
+void saturate(inout vec4 color){
+    //计算灰度值
+    float grayValue = color.r * 0.3 + color.g * 0.59 + color.b * 0.11;
+    //转换到hsl颜色空间
+    vec3 hslColor = vec3(rgb2hsl(color.rgb));
+    //根据灰度值区分阴影和高光，分别处理
+    if(grayValue < 0.3){
+        //添加蓝色
+        if(hslColor.x < 0.68 || hslColor.x > 0.66){
+            hslColor.x = 0.67;
+        }
+        //增加饱和度
+        hslColor.y += 0.3;
+    }else if(grayValue > 0.7){
+        //添加黄色
+        if(hslColor.x < 0.18 || hslColor.x > 0.16){
+            hslColor.x = 0.17;
+        }
+        //降低饱和度
+        hslColor.y -= 0.3;
+    }
+    color = vec4(hsl2rgb(hslColor), color.a);
+}
+```
+
+|原图|色调分离|
+|---|---|
+|![](https://wangyt-imgs.oss-cn-beijing.aliyuncs.com/blog/android-%E7%9B%B8%E6%9C%BA%E5%BC%80%E5%8F%91-%E6%BB%A4%E9%95%9C/009.jpg)|![](https://wangyt-imgs.oss-cn-beijing.aliyuncs.com/blog/android-%E7%9B%B8%E6%9C%BA%E5%BC%80%E5%8F%91-%E6%BB%A4%E9%95%9C/010.jpg)|
 
 [项目github地址](https://github.com/WangYantao/android-camera-demos)
