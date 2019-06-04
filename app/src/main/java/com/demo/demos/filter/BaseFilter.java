@@ -1,25 +1,38 @@
 package com.demo.demos.filter;
 
-import android.util.Log;
-
 import com.demo.demos.R;
+import com.demo.demos.utils.CommonUtil;
 import com.demo.demos.utils.GLUtil;
 
 import java.nio.FloatBuffer;
 
 import static android.opengl.GLES30.*;
-import static com.demo.demos.utils.GLUtil.UNIFORM_TEXTURE;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION_SIZE;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION_SIZE;
-import static com.demo.demos.utils.GLUtil.textureCoord;
-import static com.demo.demos.utils.GLUtil.vertex;
 
 /**
  * Created by wangyt on 2019/5/24
  */
 public class BaseFilter {
+    public static final String VERTEX_ATTRIB_POSITION = "a_Position";
+    public static final int VERTEX_ATTRIB_POSITION_SIZE = 3;
+    public static final String VERTEX_ATTRIB_TEXTURE_POSITION = "a_texCoord";
+    public static final int VERTEX_ATTRIB_TEXTURE_POSITION_SIZE = 2;
+    public static final String UNIFORM_TEXTURE = "s_texture";
+
+    public static final float[] vertex ={
+            -1f,1f,0.0f,//左上
+            -1f,-1f,0.0f,//左下
+            1f,-1f,0.0f,//右下
+            1f,1f,0.0f//右上
+    };
+
+    public static final float[] textureCoord = {
+            0.0f,1.0f,
+            0.0f,0.0f,
+            1.0f,0.0f,
+            1.0f,1.0f
+    };
+
+
     public FloatBuffer vertexBuffer;
     public FloatBuffer textureCoordBuffer;
 
@@ -34,8 +47,8 @@ public class BaseFilter {
     }
 
     public void initBuffer(){
-        vertexBuffer = GLUtil.getFloatBuffer(vertex);
-        textureCoordBuffer = GLUtil.getFloatBuffer(textureCoord);
+        vertexBuffer = CommonUtil.getFloatBuffer(vertex);
+        textureCoordBuffer = CommonUtil.getFloatBuffer(textureCoord);
     }
 
     public int[] getTextureId() {

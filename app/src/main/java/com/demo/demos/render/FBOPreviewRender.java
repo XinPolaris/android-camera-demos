@@ -1,16 +1,10 @@
 package com.demo.demos.render;
 
 import android.graphics.SurfaceTexture;
-import android.opengl.GLES11Ext;
 import android.opengl.GLSurfaceView;
 
-import com.demo.demos.R;
-import com.demo.demos.filter.BaseFilter;
 import com.demo.demos.filter.ColorFilter;
-import com.demo.demos.filter.FBOOesFilter;
-import com.demo.demos.utils.GLUtil;
-
-import java.nio.FloatBuffer;
+import com.demo.demos.filter.CameraFilter;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -25,12 +19,12 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
     SurfaceTexture surfaceTexture;
     int[] cameraTexture = new int[1];
 
-    FBOOesFilter fboOesFilter;
-    ColorFilter baseFilter;
+    CameraFilter cameraFilter;
+    ColorFilter colorFilter;
 
     public FBOPreviewRender() {
-        fboOesFilter = new FBOOesFilter();
-        baseFilter = new ColorFilter();
+        cameraFilter = new CameraFilter();
+        colorFilter = new ColorFilter();
     }
 
     public SurfaceTexture getSurfaceTexture(){
@@ -43,14 +37,14 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
         createTexture();
         surfaceTexture = new SurfaceTexture(cameraTexture[0]);
 
-        fboOesFilter.onSurfaceCreated();
-        baseFilter.onSurfaceCreated();
+        cameraFilter.onSurfaceCreated();
+        colorFilter.onSurfaceCreated();
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        fboOesFilter.onSurfaceChanged(width, height);
-        baseFilter.onSurfaceChanged(width, height);
+        cameraFilter.onSurfaceChanged(width, height);
+        colorFilter.onSurfaceChanged(width, height);
     }
 
     @Override
@@ -59,10 +53,10 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
             surfaceTexture.updateTexImage();
         }
 
-        fboOesFilter.setTextureId(cameraTexture);
-        fboOesFilter.onDraw();
-        baseFilter.setTextureId(fboOesFilter.getOutputTextureId());
-        baseFilter.onDraw();
+        cameraFilter.setTextureId(cameraTexture);
+        cameraFilter.onDraw();
+        colorFilter.setTextureId(cameraFilter.getOutputTextureId());
+        colorFilter.onDraw();
     }
 
     private void createTexture(){

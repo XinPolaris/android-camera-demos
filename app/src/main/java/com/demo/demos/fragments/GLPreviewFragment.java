@@ -25,7 +25,7 @@ import androidx.fragment.app.Fragment;
 import com.demo.demos.R;
 import com.demo.demos.base.BaseFragment;
 import com.demo.demos.filter.ColorFilter;
-import com.demo.demos.filter.FBOOesFilter;
+import com.demo.demos.filter.CameraFilter;
 import com.demo.demos.render.FBOPreviewRender;
 import com.demo.demos.utils.CameraUtils;
 
@@ -101,7 +101,7 @@ public class GLPreviewFragment extends BaseFragment {
         btnPhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FBOOesFilter.requestTakePhoto = true;
+                CameraFilter.requestTakePhoto = true;
             }
         });
     }

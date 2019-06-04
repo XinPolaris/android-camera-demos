@@ -21,8 +21,6 @@ import static android.opengl.GLUtils.texImage2D;
  */
 public class GLUtil {
     private static final String TAG = "opengl-demos";
-    //float 字节数
-    public static final int BYTES_PER_FLOAT = 4;
 
     private static Context context;
 
@@ -31,7 +29,7 @@ public class GLUtil {
     }
 
     /*********************** 纹理 ************************/
-    public static int loadTextureFromBitmap(int resId){
+    public static int loadTextureFromRes(int resId){
         //创建纹理对象
         int[] textureId = new int[1];
         //生成纹理：纹理数量、保存纹理的数组，数组偏移量
@@ -143,52 +141,4 @@ public class GLUtil {
         }
         return program;
     }
-
-    /*********************** （暂时放这，后面统一组织）**************/
-    public static FloatBuffer getFloatBuffer(float[] array){
-        //将顶点数据拷贝映射到 native 内存中，以便opengl能够访问
-        FloatBuffer buffer = ByteBuffer
-                .allocateDirect(array.length * BYTES_PER_FLOAT)//直接分配 native 内存，不会被gc
-                .order(ByteOrder.nativeOrder())//和本地平台保持一致的字节序（大/小头）
-                .asFloatBuffer();//将底层字节映射到FloatBuffer实例，方便使用
-        buffer
-                .put(array)//将顶点拷贝到 native 内存中
-                .position(0);//每次 put position 都会 + 1，需要在绘制前重置为0
-
-        return buffer;
-    }
-
-    public static final String VERTEX_ATTRIB_POSITION = "a_Position";
-    public static final int VERTEX_ATTRIB_POSITION_SIZE = 3;
-    public static final String VERTEX_ATTRIB_TEXTURE_POSITION = "a_texCoord";
-    public static final int VERTEX_ATTRIB_TEXTURE_POSITION_SIZE = 2;
-    public static final String UNIFORM_TEXTURE = "s_texture";
-    public static final String UNIFORM_COLOR_FLAG = "colorFlag";
-    public static final String UNIFORM_TEXTURE_LUT = "textureLUT";
-
-
-
-    public static final float[] vertex ={
-            -1f,1f,0.0f,//左上
-            -1f,-1f,0.0f,//左下
-            1f,-1f,0.0f,//右下
-            1f,1f,0.0f//右上
-    };
-
-    // 纹理坐标，（s,t）
-    // 使用后置相机，旋转90度
-    // t坐标方向和顶点y坐标反着
-    public static final float[] textureCoordOes = {
-            0.0f,1.0f,
-            1.0f,1.0f,
-            1.0f,0.0f,
-            0.0f,0.0f
-    };
-    //
-    public static final float[] textureCoord = {
-            0.0f,1.0f,
-            0.0f,0.0f,
-            1.0f,0.0f,
-            1.0f,1.0f
-    };
 }

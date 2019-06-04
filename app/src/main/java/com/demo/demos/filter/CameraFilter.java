@@ -1,12 +1,10 @@
 package com.demo.demos.filter;
 
 import android.graphics.Bitmap;
-import android.opengl.GLES11Ext;
 import android.os.Environment;
 import android.util.Log;
 
-import com.demo.demos.R;
-import com.demo.demos.utils.GLUtil;
+import com.demo.demos.utils.CommonUtil;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -14,30 +12,35 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.FloatBuffer;
 
 import static android.opengl.GLES30.*;
-import static com.demo.demos.utils.GLUtil.UNIFORM_TEXTURE;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION_SIZE;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION_SIZE;
-import static com.demo.demos.utils.GLUtil.textureCoord;
-import static com.demo.demos.utils.GLUtil.textureCoordOes;
-import static com.demo.demos.utils.GLUtil.vertex;
 
 /**
  * Created by wangyt on 2019/5/24
  */
-public class FBOOesFilter extends OesFilter{
+public class CameraFilter extends OesFilter{
+
+    //后置相机，顺时针旋转90度
+    public static final float[] textureCoordCameraBack = {
+            1.0f,1.0f,
+            0.0f,1.0f,
+            0.0f,0.0f,
+            1.0f,0.0f
+    };
 
     public static boolean requestTakePhoto = false;
 
     public int[] frameBuffer = new int[1];
     public int[] frameTexture = new int[1];
 
-    public FBOOesFilter() {
+    public CameraFilter() {
         super();
+    }
+
+    @Override
+    public void initBuffer() {
+        vertexBuffer = CommonUtil.getFloatBuffer(vertex);
+        textureCoordBuffer = CommonUtil.getFloatBuffer(textureCoordCameraBack);
     }
 
     @Override
