@@ -90,11 +90,11 @@ public class BaseFilter {
 
     public void onDraw(){
         setViewPort();
-        clear();
         useProgram();
         setExtend();
         bindTexture();
         enableVertexAttribs();
+        clear();
         draw();
         disableVertexAttribs();
     }

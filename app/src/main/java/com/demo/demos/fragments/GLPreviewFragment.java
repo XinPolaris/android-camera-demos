@@ -101,7 +101,7 @@ public class GLPreviewFragment extends BaseFragment {
         btnPhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                CameraFilter.requestTakePhoto = true;
+                fboPreviewRender.setTakingPhoto(true);
             }
         });
     }
