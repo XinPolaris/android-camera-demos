@@ -17,6 +17,7 @@ public class BaseFilter {
     public static final String VERTEX_ATTRIB_TEXTURE_POSITION = "a_texCoord";
     public static final int VERTEX_ATTRIB_TEXTURE_POSITION_SIZE = 2;
     public static final String UNIFORM_TEXTURE = "s_texture";
+    public static final String UNIFORM_MATRIX = "u_matrix";
 
     public static final float[] vertex ={
             -1f,1f,0.0f,//左上
@@ -32,15 +33,29 @@ public class BaseFilter {
             1.0f,1.0f
     };
 
+    public float[] matrix = {
+            1,0,0,0,
+            0,1,0,0,
+            0,0,1,0,
+            0,0,0,1
+    };
 
     public FloatBuffer vertexBuffer;
     public FloatBuffer textureCoordBuffer;
 
     public int[] textureId;
     public int program;
-    public int hVertex, hTextureCoord, hTexture;
+    public int hVertex, hMatrix, hTextureCoord, hTexture;
 
     public int width, height;
+
+    public float[] getMatrix() {
+        return matrix;
+    }
+
+    public void setMatrix(float[] matrix) {
+        this.matrix = matrix;
+    }
 
     public BaseFilter() {
         initBuffer();
@@ -90,6 +105,7 @@ public class BaseFilter {
 
     public void initAttribLocations(){
         hVertex = glGetAttribLocation(program, VERTEX_ATTRIB_POSITION);
+        hMatrix = glGetUniformLocation(program, UNIFORM_MATRIX);
         hTextureCoord = glGetAttribLocation(program, VERTEX_ATTRIB_TEXTURE_POSITION);
         hTexture = glGetUniformLocation(program, UNIFORM_TEXTURE);
     }
@@ -108,7 +124,7 @@ public class BaseFilter {
     }
 
     public void setExtend(){
-
+        glUniformMatrix4fv(hMatrix, 1, false, getMatrix(),0);
     }
 
     public void bindTexture(){

@@ -41,6 +41,7 @@ public class ColorFilter extends BaseFilter {
 
     @Override
     public void setExtend() {
+        super.setExtend();
         glUniform1i(hColorFlag, COLOR_FLAG);
     }
 

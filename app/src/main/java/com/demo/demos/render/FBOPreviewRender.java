@@ -5,6 +5,7 @@ import android.opengl.GLSurfaceView;
 
 import com.demo.demos.filter.ColorFilter;
 import com.demo.demos.filter.CameraFilter;
+import com.demo.demos.utils.MatrixUtil;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -39,6 +40,7 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
 
         cameraFilter.onSurfaceCreated();
         colorFilter.onSurfaceCreated();
+        colorFilter.setMatrix(MatrixUtil.flip(colorFilter.getMatrix(), false, true));
     }
 
     @Override
