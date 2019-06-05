@@ -23,12 +23,14 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.demo.demos.R;
+import com.demo.demos.base.BaseActivity;
 import com.demo.demos.base.BaseFragment;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
@@ -69,6 +71,30 @@ public class PreviewFragment extends BaseFragment {
         // Required empty public constructor
     }
 
+    TextureView.SurfaceTextureListener surfaceTextureListener = new TextureView.SurfaceTextureListener() {
+
+        //TextureView 可用时调用改回调方法
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+            //TextureView 可用，打开相机
+            openCamera();
+        }
+
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+
+        }
+
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            return false;
+        }
+
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+
+        }
+    };
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -130,39 +156,29 @@ public class PreviewFragment extends BaseFragment {
         previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
 
         //设置 TextureView 的状态监听
-        previewView.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-
-            //TextureView 可用时调用改回调方法
-            @Override
-            public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-                //TextureView 可用，打开相机
-                openCamera();
-            }
-
-            @Override
-            public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
-
-            }
-
-            @Override
-            public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-                return false;
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(SurfaceTexture surface) {
-
-            }
-        });
+        previewView.setSurfaceTextureListener(surfaceTextureListener);
     }
 
     @Override
     public void onResume() {
         super.onResume();
+        ((BaseActivity) getActivity()).requestPermission("请给予相机、存储权限，以便app正常工作",
+                new BaseActivity.Callback() {
+                    @Override
+                    public void success() {
+                        if (previewView.isAvailable()) {
+                            openCamera();
+                        } else {
+                            previewView.setSurfaceTextureListener(surfaceTextureListener);
+                        }
+                    }
 
-        if (cameraDevice == null) {
-            openCamera();
-        }
+                    @Override
+                    public void failed() {
+                        Toast.makeText(getContext(), "未授予相机、存储权限！", Toast.LENGTH_SHORT).show();
+                    }
+                },
+                new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE});
     }
 
     @Override
@@ -173,39 +189,35 @@ public class PreviewFragment extends BaseFragment {
 
     @SuppressLint("MissingPermission")
     private void openCamera() {
-        if (hasPermission(Manifest.permission.CAMERA)) {
-            try {
-                //打开相机
-                cameraManager.openCamera(cameraId,
-                        new CameraDevice.StateCallback() {
-                            @Override
-                            public void onOpened(CameraDevice camera) {
-                                if (camera == null) {
-                                    return;
-                                }
-                                cameraDevice = camera;
-                                //创建相机预览 session
-                                createPreviewSession();
+        try {
+            //打开相机
+            cameraManager.openCamera(cameraId,
+                    new CameraDevice.StateCallback() {
+                        @Override
+                        public void onOpened(CameraDevice camera) {
+                            if (camera == null) {
+                                return;
                             }
+                            cameraDevice = camera;
+                            //创建相机预览 session
+                            createPreviewSession();
+                        }
 
-                            @Override
-                            public void onDisconnected(CameraDevice camera) {
-                                //释放相机资源
-                                releaseCamera();
-                            }
+                        @Override
+                        public void onDisconnected(CameraDevice camera) {
+                            //释放相机资源
+                            releaseCamera();
+                        }
 
-                            @Override
-                            public void onError(CameraDevice camera, int error) {
-                                //释放相机资源
-                                releaseCamera();
-                            }
-                        },
-                        null);
-            } catch (CameraAccessException e) {
-                e.printStackTrace();
-            }
-        }else {
-            getPermissions(Manifest.permission.CAMERA);
+                        @Override
+                        public void onError(CameraDevice camera, int error) {
+                            //释放相机资源
+                            releaseCamera();
+                        }
+                    },
+                    null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
         }
     }
 
@@ -224,7 +236,7 @@ public class PreviewFragment extends BaseFragment {
                     @Override
                     public void onImageAvailable(ImageReader reader) {
                         Image image = reader.acquireLatestImage();
-                        if (image != null){
+                        if (image != null) {
                             ByteBuffer buffer = image.getPlanes()[0].getBuffer();
                             byte[] data = new byte[buffer.remaining()];
                             Log.d(TAG, "data-size=" + data.length);
@@ -345,7 +357,7 @@ public class PreviewFragment extends BaseFragment {
         createPreviewSession();
     }
 
-    private void releaseCamera(){
+    private void releaseCamera() {
         CameraUtils.getInstance().releaseImageReader(previewReader);
         CameraUtils.getInstance().releaseCameraSession(cameraCaptureSession);
         CameraUtils.getInstance().releaseCameraDevice(cameraDevice);

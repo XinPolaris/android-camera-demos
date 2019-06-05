@@ -17,12 +17,14 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.demo.demos.R;
+import com.demo.demos.base.BaseActivity;
 import com.demo.demos.base.BaseFragment;
 import com.demo.demos.filter.ColorFilter;
 import com.demo.demos.filter.CameraFilter;
@@ -109,17 +111,25 @@ public class GLPreviewFragment extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
-        glSurfaceView.onResume();
-        if (hasPermission(Manifest.permission.CAMERA)){
-            openCamera();
-        }else {
-            getPermissions(Manifest.permission.CAMERA);
-        }
+        ((BaseActivity) getActivity()).requestPermission("请给予相机、存储权限，以便app正常工作",
+                new BaseActivity.Callback() {
+                    @Override
+                    public void success() {
+//                        glSurfaceView.onResume();
+                        openCamera();
+                    }
+
+                    @Override
+                    public void failed() {
+                        Toast.makeText(getContext(), "未授予相机、存储权限！", Toast.LENGTH_SHORT).show();
+                    }
+                },
+                new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE});
     }
 
     @Override
     public void onPause() {
-        glSurfaceView.onPause();
+//        glSurfaceView.onPause();
         releaseCamera();
         super.onPause();
     }

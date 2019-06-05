@@ -27,12 +27,14 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.demo.demos.R;
+import com.demo.demos.base.BaseActivity;
 import com.demo.demos.base.BaseFragment;
 import com.demo.demos.utils.CameraUtils;
 import com.demo.demos.views.AutoFitTextureView;
@@ -133,11 +135,24 @@ public class PhotoFragment extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (previewView.isAvailable()) {
-            openCamera();
-        } else {
-            previewView.setSurfaceTextureListener(surfaceTextureListener);
-        }
+
+        ((BaseActivity) getActivity()).requestPermission("请给予相机、存储权限，以便app正常工作",
+                new BaseActivity.Callback() {
+                    @Override
+                    public void success() {
+                        if (previewView.isAvailable()) {
+                            openCamera();
+                        } else {
+                            previewView.setSurfaceTextureListener(surfaceTextureListener);
+                        }
+                    }
+
+                    @Override
+                    public void failed() {
+                        Toast.makeText(getContext(), "未授予相机、存储权限！", Toast.LENGTH_SHORT).show();
+                    }
+                },
+                new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE});
     }
 
     @Override
@@ -148,22 +163,18 @@ public class PhotoFragment extends BaseFragment {
 
     @SuppressLint("MissingPermission")
     private void openCamera() {
-        if (hasPermission(Manifest.permission.CAMERA)) {
-            try {
-                displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
-                if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
-                    previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
-                } else {
-                    previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
-                }
-                configureTransform(previewView.getWidth(), previewView.getHeight());
-                cameraManager.openCamera(cameraId, cameraStateCallback, null);
-            } catch (CameraAccessException e) {
-                e.printStackTrace();
-                Log.d(TAG, "相机访问异常");
+        try {
+            displayRotation = ((Activity) getContext()).getWindowManager().getDefaultDisplay().getOrientation();
+            if (displayRotation == Surface.ROTATION_0 || displayRotation == Surface.ROTATION_180) {
+                previewView.setAspectRation(photoSize.getHeight(), photoSize.getWidth());
+            } else {
+                previewView.setAspectRation(photoSize.getWidth(), photoSize.getHeight());
             }
-        }else {
-            getPermissions(Manifest.permission.CAMERA);
+            configureTransform(previewView.getWidth(), previewView.getHeight());
+            cameraManager.openCamera(cameraId, cameraStateCallback, null);
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+            Log.d(TAG, "相机访问异常");
         }
     }
 
@@ -209,36 +220,32 @@ public class PhotoFragment extends BaseFragment {
     }
 
     private void writeImageToFile() {
-        if (hasPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-            String filePath = Environment.getExternalStorageDirectory() + "/DCIM/Camera/001.jpg";
-            Image image = photoReader.acquireNextImage();
-            if (image == null) {
-                return;
-            }
-            ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
-            byte[] data = new byte[byteBuffer.remaining()];
-            byteBuffer.get(data);
-            FileOutputStream fos = null;
+        String filePath = Environment.getExternalStorageDirectory() + "/DCIM/Camera/001.jpg";
+        Image image = photoReader.acquireNextImage();
+        if (image == null) {
+            return;
+        }
+        ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
+        byte[] data = new byte[byteBuffer.remaining()];
+        byteBuffer.get(data);
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(new File(filePath));
+            fos.write(data);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
             try {
-                fos = new FileOutputStream(new File(filePath));
-                fos.write(data);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+                fos.close();
+                fos = null;
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
-                try {
-                    fos.close();
-                    fos = null;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    image.close();
-                    image = null;
-                }
+                image.close();
+                image = null;
             }
-        }else {
-            getPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE);
         }
     }
 
