@@ -3,6 +3,7 @@ package com.demo.demos.render;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
 import android.os.Environment;
 import android.util.Log;
 
@@ -27,7 +28,10 @@ import static com.demo.demos.utils.CommonUtil.TAG;
 /**
  * Created by wangyt on 2019/5/21
  */
-public class FBOPreviewRender implements GLSurfaceView.Renderer{
+public class CameraPreviewRender implements GLSurfaceView.Renderer {
+
+    boolean useFront = false;
+    float[] matrix = new float[16];
 
     boolean takingPhoto = false;
     boolean recordingVideo = false;
@@ -42,12 +46,20 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
     int[] exportFrame = new int[1];
     int[] exportTexture = new int[1];
 
-    public FBOPreviewRender() {
+    public CameraPreviewRender() {
         cameraFilter = new CameraFilter();
         colorFilter = new ColorFilter();
     }
 
-    public SurfaceTexture getSurfaceTexture(){
+    public void setUseFront(boolean useFront) {
+        if (this.useFront != useFront) {
+            this.useFront = useFront;
+            cameraFilter.setUseFront(useFront);
+            matrix = MatrixUtil.flip(matrix, true, false);
+        }
+    }
+
+    public SurfaceTexture getSurfaceTexture() {
         return surfaceTexture;
     }
 
@@ -74,12 +86,13 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
 
         cameraFilter.onSurfaceCreated();
         colorFilter.onSurfaceCreated();
-        colorFilter.setMatrix(MatrixUtil.flip(colorFilter.getMatrix(), false, true));
+        matrix = MatrixUtil.flip(colorFilter.getMatrix(), false, true);
+        colorFilter.setMatrix(matrix);
     }
 
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
-        if(this.width!=width||this.height!=height){
+        if (this.width != width || this.height != height) {
             this.width = width;
             this.height = height;
 
@@ -93,7 +106,7 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
 
     @Override
     public void onDrawFrame(GL10 gl) {
-        if (surfaceTexture != null){
+        if (surfaceTexture != null) {
             surfaceTexture.updateTexImage();
         }
 
@@ -101,55 +114,56 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
         cameraFilter.onDraw();
 
         colorFilter.setTextureId(cameraFilter.getOutputTextureId());
-        if (isTakingPhoto()){
-            ByteBuffer exportBuffer = ByteBuffer.allocate(width * height *4);
+
+        if (isTakingPhoto()) {
+            ByteBuffer exportBuffer = ByteBuffer.allocate(width * height * 4);
 
             bindFrameBufferAndTexture();
-            colorFilter.setMatrix(MatrixUtil.flip(colorFilter.getMatrix(), false, true));
+            colorFilter.setMatrix(MatrixUtil.flip(matrix, false, true));
             colorFilter.onDraw();
             glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, exportBuffer);
             savePhoto(exportBuffer);
             unBindFrameBuffer();
 
             setTakingPhoto(false);
-            colorFilter.setMatrix(MatrixUtil.flip(colorFilter.getMatrix(), false, true));
-        }else {
+            colorFilter.setMatrix(MatrixUtil.flip(matrix, false, true));
+        } else {
             colorFilter.onDraw();
         }
     }
 
-    private void createTexture(){
+    private void createTexture() {
         glGenTextures(cameraTexture.length, cameraTexture, 0);
     }
 
-    public void delFrameBufferAndTexture(){
+    public void delFrameBufferAndTexture() {
         glDeleteFramebuffers(exportFrame.length, exportFrame, 0);
         glDeleteTextures(exportTexture.length, exportTexture, 0);
     }
 
-    public void genFrameBufferAndTexture(){
+    public void genFrameBufferAndTexture() {
         glGenFramebuffers(exportFrame.length, exportFrame, 0);
 
         glGenTextures(exportTexture.length, exportTexture, 0);
         glBindTexture(GL_TEXTURE_2D, exportTexture[0]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,GL_RGBA,GL_UNSIGNED_BYTE,null);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
         setTextureParameters();
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    public void setTextureParameters(){
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    public void setTextureParameters() {
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
 
-    public void bindFrameBufferAndTexture(){
+    public void bindFrameBufferAndTexture() {
         glBindFramebuffer(GL_FRAMEBUFFER, exportFrame[0]);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,GL_TEXTURE_2D, exportTexture[0],0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, exportTexture[0], 0);
     }
 
-    public void unBindFrameBuffer(){
+    public void unBindFrameBuffer() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
@@ -159,19 +173,19 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
 //        return buffer;
 //    }
 
-    public void savePhoto(final ByteBuffer buffer){
+    public void savePhoto(final ByteBuffer buffer) {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888) ;
+                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
                 bitmap.copyPixelsFromBuffer(buffer);
                 String folderPath = Environment.getExternalStorageDirectory() + "/DCIM/Camera/";
                 File folder = new File(folderPath);
-                if (!folder.exists() && !folder.mkdirs()){
+                if (!folder.exists() && !folder.mkdirs()) {
                     Log.e("demos", "图片目录异常");
                     return;
                 }
-                String filePath = folderPath+System.currentTimeMillis()+".jpg";
+                String filePath = folderPath + System.currentTimeMillis() + ".jpg";
                 BufferedOutputStream bos = null;
                 try {
                     FileOutputStream fos = new FileOutputStream(filePath);
@@ -180,7 +194,7 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } finally {
-                    if (bos !=null) {
+                    if (bos != null) {
                         try {
                             bos.flush();
                             bos.close();
@@ -188,7 +202,7 @@ public class FBOPreviewRender implements GLSurfaceView.Renderer{
                             e.printStackTrace();
                         }
                     }
-                    if (bitmap != null){
+                    if (bitmap != null) {
                         bitmap.recycle();
                     }
                 }

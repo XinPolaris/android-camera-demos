@@ -27,8 +27,7 @@ import com.demo.demos.R;
 import com.demo.demos.base.BaseActivity;
 import com.demo.demos.base.BaseFragment;
 import com.demo.demos.filter.ColorFilter;
-import com.demo.demos.filter.CameraFilter;
-import com.demo.demos.render.FBOPreviewRender;
+import com.demo.demos.render.CameraPreviewRender;
 import com.demo.demos.utils.CameraUtils;
 
 import java.util.Arrays;
@@ -41,6 +40,7 @@ public class GLPreviewFragment extends BaseFragment {
 
     GLSurfaceView glSurfaceView;
 
+    boolean useFront = false;//是否使用的是前置相机
     String cameraId;
     CameraManager cameraManager;
     List<Size> outputSizes;
@@ -50,11 +50,11 @@ public class GLPreviewFragment extends BaseFragment {
     CaptureRequest.Builder previewRequestBuilder;
     CaptureRequest previewRequest;
 
-    FBOPreviewRender fboPreviewRender;
+    CameraPreviewRender cameraPreviewRender;
     SurfaceTexture surfaceTexture;
     Surface surface;
 
-    Button btnColorFilter, btnPhoto;
+    Button btnCamera, btnColorFilter, btnPhoto;
 
     public GLPreviewFragment() {
         // Required empty public constructor
@@ -76,7 +76,7 @@ public class GLPreviewFragment extends BaseFragment {
 
     private void initCamera() {
         cameraManager = CameraUtils.getInstance().getCameraManager();
-        cameraId = CameraUtils.getInstance().getBackCameraId();
+        cameraId = CameraUtils.getInstance().getCameraId(useFront);
         outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
         photoSize = outputSizes.get(16);
     }
@@ -84,8 +84,8 @@ public class GLPreviewFragment extends BaseFragment {
     private void initViews(View view) {
         glSurfaceView = view.findViewById(R.id.glSurfaceView);
         glSurfaceView.setEGLContextClientVersion(3);
-        fboPreviewRender = new FBOPreviewRender();
-        glSurfaceView.setRenderer(fboPreviewRender);
+        cameraPreviewRender = new CameraPreviewRender();
+        glSurfaceView.setRenderer(cameraPreviewRender);
 
         btnColorFilter = view.findViewById(R.id.btnColorFilter);
         btnColorFilter.setOnClickListener(new View.OnClickListener() {
@@ -103,7 +103,16 @@ public class GLPreviewFragment extends BaseFragment {
         btnPhoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                fboPreviewRender.setTakingPhoto(true);
+                cameraPreviewRender.setTakingPhoto(true);
+            }
+        });
+
+        btnCamera = view.findViewById(R.id.btnCamera);
+        btnCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //切换相机
+                changeCamera();
             }
         });
     }
@@ -144,6 +153,15 @@ public class GLPreviewFragment extends BaseFragment {
         }
     }
 
+    private void changeCamera(){
+        releaseCamera();
+        useFront = !useFront;
+        cameraId = CameraUtils.getInstance().getCameraId(useFront);
+        openCamera();
+
+        cameraPreviewRender.setUseFront(useFront);
+    }
+
     private void releaseCamera() {
         CameraUtils.getInstance().releaseCameraSession(captureSession);
         CameraUtils.getInstance().releaseCameraDevice(cameraDevice);
@@ -153,7 +171,7 @@ public class GLPreviewFragment extends BaseFragment {
         @Override
         public void onOpened(CameraDevice camera) {
             Log.d(TAG, "相机已启动");
-            surfaceTexture = fboPreviewRender.getSurfaceTexture();
+            surfaceTexture = cameraPreviewRender.getSurfaceTexture();
             if (surfaceTexture == null) {
                 return;
             }
