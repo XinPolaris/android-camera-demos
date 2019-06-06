@@ -15,3 +15,5 @@
 [android-camera2相机开发【7】-使用opengles进行相机预览](./android-camera2相机开发【7】-使用opengles进行相机预览.md)
 
 [android-camera2相机开发【8】-使用opengl实现滤镜效果（1）](./android-camera2相机开发【8】-使用opengl实现滤镜效果（1）.md)
+
+> 离屏渲染、lut滤镜、滤镜拍照，前置相机适配，代码已完成，文章后续补上。
