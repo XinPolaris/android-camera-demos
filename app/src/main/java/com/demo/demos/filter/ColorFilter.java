@@ -1,18 +1,18 @@
 package com.demo.demos.filter;
 
-import android.opengl.GLUtils;
-
 import com.demo.demos.R;
 import com.demo.demos.utils.GLUtil;
 
 import static android.opengl.GLES30.*;
-import static com.demo.demos.utils.GLUtil.UNIFORM_COLOR_FLAG;
-import static com.demo.demos.utils.GLUtil.UNIFORM_TEXTURE_LUT;
 
 /**
  * Created by wangyt on 2019/5/27
  */
 public class ColorFilter extends BaseFilter {
+
+    public static final String UNIFORM_COLOR_FLAG = "colorFlag";
+    public static final String UNIFORM_TEXTURE_LUT = "textureLUT";
+
     public static int COLOR_FLAG = 0;
     public static int COLOR_FLAG_USE_LUT = 6;
 
@@ -23,7 +23,7 @@ public class ColorFilter extends BaseFilter {
     @Override
     public void onSurfaceCreated() {
         super.onSurfaceCreated();
-        LUTTextureId = GLUtil.loadTextureFromBitmap(R.drawable.amatorka);
+        LUTTextureId = GLUtil.loadTextureFromRes(R.drawable.amatorka);
     }
 
     @Override
@@ -41,6 +41,7 @@ public class ColorFilter extends BaseFilter {
 
     @Override
     public void setExtend() {
+        super.setExtend();
         glUniform1i(hColorFlag, COLOR_FLAG);
     }
 

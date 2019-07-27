@@ -1,14 +1,11 @@
 package com.demo.demos.filter;
 
 import android.opengl.GLES11Ext;
-import android.util.Log;
 
 import com.demo.demos.R;
 import com.demo.demos.utils.GLUtil;
 
 import static android.opengl.GLES30.*;
-import static com.demo.demos.utils.GLUtil.textureCoordOes;
-import static com.demo.demos.utils.GLUtil.vertex;
 
 /**
  * Created by wangyt on 2019/5/24
@@ -17,12 +14,6 @@ public class OesFilter extends BaseFilter{
 
     public OesFilter() {
         super();
-    }
-
-    @Override
-    public void initBuffer() {
-        vertexBuffer = GLUtil.getFloatBuffer(vertex);
-        textureCoordBuffer = GLUtil.getFloatBuffer(textureCoordOes);
     }
 
     @Override

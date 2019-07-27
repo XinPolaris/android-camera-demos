@@ -1,41 +1,69 @@
 package com.demo.demos.filter;
 
-import android.util.Log;
-
 import com.demo.demos.R;
+import com.demo.demos.utils.CommonUtil;
 import com.demo.demos.utils.GLUtil;
 
 import java.nio.FloatBuffer;
 
 import static android.opengl.GLES30.*;
-import static com.demo.demos.utils.GLUtil.UNIFORM_TEXTURE;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_POSITION_SIZE;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION;
-import static com.demo.demos.utils.GLUtil.VERTEX_ATTRIB_TEXTURE_POSITION_SIZE;
-import static com.demo.demos.utils.GLUtil.textureCoord;
-import static com.demo.demos.utils.GLUtil.vertex;
 
 /**
  * Created by wangyt on 2019/5/24
  */
 public class BaseFilter {
+    public static final String VERTEX_ATTRIB_POSITION = "a_Position";
+    public static final int VERTEX_ATTRIB_POSITION_SIZE = 3;
+    public static final String VERTEX_ATTRIB_TEXTURE_POSITION = "a_texCoord";
+    public static final int VERTEX_ATTRIB_TEXTURE_POSITION_SIZE = 2;
+    public static final String UNIFORM_TEXTURE = "s_texture";
+    public static final String UNIFORM_MATRIX = "u_matrix";
+
+    public static final float[] vertex ={
+            -1f,1f,0.0f,//左上
+            -1f,-1f,0.0f,//左下
+            1f,-1f,0.0f,//右下
+            1f,1f,0.0f//右上
+    };
+
+    public static final float[] textureCoord = {
+            0.0f,1.0f,
+            0.0f,0.0f,
+            1.0f,0.0f,
+            1.0f,1.0f
+    };
+
+    public float[] matrix = {
+            1,0,0,0,
+            0,1,0,0,
+            0,0,1,0,
+            0,0,0,1
+    };
+
     public FloatBuffer vertexBuffer;
     public FloatBuffer textureCoordBuffer;
 
     public int[] textureId;
     public int program;
-    public int hVertex, hTextureCoord, hTexture;
+    public int hVertex, hMatrix, hTextureCoord, hTexture;
 
     public int width, height;
+
+    public float[] getMatrix() {
+        return matrix;
+    }
+
+    public void setMatrix(float[] matrix) {
+        this.matrix = matrix;
+    }
 
     public BaseFilter() {
         initBuffer();
     }
 
     public void initBuffer(){
-        vertexBuffer = GLUtil.getFloatBuffer(vertex);
-        textureCoordBuffer = GLUtil.getFloatBuffer(textureCoord);
+        vertexBuffer = CommonUtil.getFloatBuffer(vertex);
+        textureCoordBuffer = CommonUtil.getFloatBuffer(textureCoord);
     }
 
     public int[] getTextureId() {
@@ -62,11 +90,11 @@ public class BaseFilter {
 
     public void onDraw(){
         setViewPort();
-        clear();
         useProgram();
         setExtend();
         bindTexture();
         enableVertexAttribs();
+        clear();
         draw();
         disableVertexAttribs();
     }
@@ -77,6 +105,7 @@ public class BaseFilter {
 
     public void initAttribLocations(){
         hVertex = glGetAttribLocation(program, VERTEX_ATTRIB_POSITION);
+        hMatrix = glGetUniformLocation(program, UNIFORM_MATRIX);
         hTextureCoord = glGetAttribLocation(program, VERTEX_ATTRIB_TEXTURE_POSITION);
         hTexture = glGetUniformLocation(program, UNIFORM_TEXTURE);
     }
@@ -95,7 +124,7 @@ public class BaseFilter {
     }
 
     public void setExtend(){
-
+        glUniformMatrix4fv(hMatrix, 1, false, getMatrix(),0);
     }
 
     public void bindTexture(){
