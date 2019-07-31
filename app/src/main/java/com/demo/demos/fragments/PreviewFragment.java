@@ -129,6 +129,8 @@ public class PreviewFragment extends BaseFragment {
                 //切换预览分辨率
                 updateCameraPreview();
                 setButtonText();
+                Log.e(TAG, "onClick: " + previewView.getWidth()+ ';' + previewView.getHeight() );
+
             }
         });
         setButtonText();
@@ -153,7 +155,7 @@ public class PreviewFragment extends BaseFragment {
         });
 
         previewView = view.findViewById(R.id.afttv_camera);
-        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+        previewView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
 
         //设置 TextureView 的状态监听
         previewView.setSurfaceTextureListener(surfaceTextureListener);
@@ -300,14 +302,14 @@ public class PreviewFragment extends BaseFragment {
             sizeIndex = 0;
         }
         previewSize = outputSizes.get(sizeIndex);
-        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+        previewView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
         //重新创建会话
         createPreviewSession();
     }
 
     private void updateCameraPreviewWithImageMode() {
         previewSize = outputSizes.get(0);
-        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+        previewView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
         createPreviewSession();
     }
 
@@ -323,7 +325,7 @@ public class PreviewFragment extends BaseFragment {
         }
         if (sizes.size() > 0) {
             previewSize = Collections.max(sizes, new CameraUtils.CompareSizesByArea());
-            previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+            previewView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
             createPreviewSession();
             return;
         }
@@ -339,7 +341,7 @@ public class PreviewFragment extends BaseFragment {
             }
         }
         if (previewSize.getWidth() * previewSize.getHeight() > PREVIEW_SIZE_MIN) {
-            previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+            previewView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
             createPreviewSession();
         }
         //如果宽高比最接近的输出尺寸太小，则选择与预览窗口面积最接近的输出尺寸
@@ -353,7 +355,7 @@ public class PreviewFragment extends BaseFragment {
                 previewSize = size;
             }
         }
-        previewView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+        previewView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
         createPreviewSession();
     }
 
