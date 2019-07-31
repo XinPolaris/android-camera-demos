@@ -18,4 +18,4 @@
 
 [android-camera2相机开发【9】-使用opengl实现LUT滤镜](./android-camera2相机开发【9】-使用opengl实现LUT滤镜.md)
 
-> 离屏渲染、滤镜拍照，前置相机适配，代码已完成，文章后续补上。
+[android-camera2相机开发【10】-opengl离屏渲染、拍照、前后相机切换](./android-camera2相机开发【10】-opengl离屏渲染、拍照、前后相机切换.md)
