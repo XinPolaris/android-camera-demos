@@ -33,6 +33,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.demo.demos.MainActivity;
 import com.demo.demos.R;
 import com.demo.demos.base.BaseActivity;
 import com.demo.demos.base.BaseFragment;
@@ -53,14 +54,14 @@ import java.util.List;
  */
 public class PhotoFragment extends BaseFragment {
 
-    private static final SparseIntArray PHOTO_ORITATION = new SparseIntArray();
-
-    static {
-        PHOTO_ORITATION.append(Surface.ROTATION_0, 90);
-        PHOTO_ORITATION.append(Surface.ROTATION_90, 0);
-        PHOTO_ORITATION.append(Surface.ROTATION_180, 270);
-        PHOTO_ORITATION.append(Surface.ROTATION_270, 180);
-    }
+//    private static final SparseIntArray PHOTO_ORITATION = new SparseIntArray();
+//
+//    static {
+//        PHOTO_ORITATION.append(Surface.ROTATION_0, 90);
+//        PHOTO_ORITATION.append(Surface.ROTATION_90, 0);
+//        PHOTO_ORITATION.append(Surface.ROTATION_180, 270);
+//        PHOTO_ORITATION.append(Surface.ROTATION_270, 180);
+//    }
 
     Button btnPhoto;
     AutoFitTextureView previewView;
@@ -68,7 +69,7 @@ public class PhotoFragment extends BaseFragment {
     String cameraId;
     CameraManager cameraManager;
     List<Size> outputSizes;
-    Size photoSize;
+    Size photoSize = MainActivity.photoSize;
     CameraDevice cameraDevice;
     CameraCaptureSession captureSession;
     CaptureRequest.Builder previewRequestBuilder;
@@ -107,9 +108,9 @@ public class PhotoFragment extends BaseFragment {
 
     private void initCamera() {
         cameraManager = CameraUtils.getInstance().getCameraManager();
-        cameraId = CameraUtils.getInstance().getBackCameraId();
-        outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
-        photoSize = outputSizes.get(0);
+        cameraId = CameraUtils.getInstance().getFrontCameraId();
+//        outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
+//        photoSize = outputSizes.get(outputSizes.size() - 1);
     }
 
     private void initViews(View view) {
@@ -206,8 +207,8 @@ public class PhotoFragment extends BaseFragment {
     private void takePhoto() {
         try {
             photoRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            cameraOritation = PHOTO_ORITATION.get(displayRotation);
-            photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, cameraOritation);
+            cameraOritation = 90;
+            photoRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, 0);
             photoRequestBuilder.addTarget(photoSurface);
             photoRequest = photoRequestBuilder.build();
 
@@ -220,7 +221,17 @@ public class PhotoFragment extends BaseFragment {
     }
 
     private void writeImageToFile() {
-        String filePath = Environment.getExternalStorageDirectory() + "/DCIM/Camera/001.jpg";
+        new File(new StringBuilder()
+                .append(Environment.getExternalStorageDirectory())
+                .append("/DCIM/Camera/").toString()).mkdirs();
+        String filePath = new StringBuilder()
+                .append(Environment.getExternalStorageDirectory())
+                .append("/DCIM/Camera/")
+                .append(photoSize.toString())
+                .append("_")
+                .append(System.currentTimeMillis())
+                .append(".jpg")
+                .toString();
         Image image = photoReader.acquireNextImage();
         if (image == null) {
             return;
@@ -357,6 +368,7 @@ public class PhotoFragment extends BaseFragment {
         @Override
         public void onImageAvailable(ImageReader reader) {
             writeImageToFile();
+            Toast.makeText(getContext(), "保存成功：/storage/emulated/0/DCIM/Camera", Toast.LENGTH_SHORT).show();
         }
     };
 }

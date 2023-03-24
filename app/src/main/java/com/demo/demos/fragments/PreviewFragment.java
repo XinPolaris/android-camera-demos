@@ -114,7 +114,7 @@ public class PreviewFragment extends BaseFragment {
 
     private void initCamera() {
         cameraManager = CameraUtils.getInstance().getCameraManager();
-        cameraId = CameraUtils.getInstance().getCameraId(false);//默认使用后置相机
+        cameraId = CameraUtils.getInstance().getCameraId(true);//默认使用后置相机
         //获取指定相机的输出尺寸列表，降序排序
         outputSizes = CameraUtils.getInstance().getCameraOutputSizes(cameraId, SurfaceTexture.class);
         //初始化预览尺寸
